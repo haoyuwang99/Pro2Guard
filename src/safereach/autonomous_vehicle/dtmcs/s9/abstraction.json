@@ -1,0 +1,1 @@
+{"predicates": [["NPCAheadAhead", "<=", "0.5"], ["NPCAheadspeed", "<", "0.5"], ["isTrafficJam", "==", "1.0"], ["junctionAhead", "<=", "1.0"], ["speed", "<", "0.5"]], "reach": ["reach_destination", "==", "1"], "collision": ["collision", "==", "1"], "rule": "rule53"}

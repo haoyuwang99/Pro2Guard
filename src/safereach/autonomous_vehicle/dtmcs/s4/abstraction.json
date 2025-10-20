@@ -1,0 +1,1 @@
+{"predicates": [["NPCAheadAhead", "<=", "0.5"], ["junctionAhead", "<=", "2.0"], ["speed", "<", "0.5"], ["stoplineAhead", "<=", "2.0"], ["trafficLightAheadcolor", "==", "1.0"]], "reach": ["reach_destination", "==", "1"], "collision": ["collision", "==", "1"], "rule": "rule51_5"}

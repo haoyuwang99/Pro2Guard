@@ -1,0 +1,1 @@
+{"predicates": [["currentLanenumber", "==", "0.0"], ["currentLanenumber", ">", "0.0"], ["speed", "<", "0.5"], ["speed", ">", "0.5"], ["trafficLightAheadcolor", "==", "2.0"], ["trafficLightAheadcolor", "==", "2.0"]], "reach": ["reach_destination", "==", "1"], "collision": ["collision", "==", "1"], "rule": "rule38_2"}
