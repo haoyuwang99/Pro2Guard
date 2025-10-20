@@ -7,6 +7,7 @@ import copy
 from antlr4 import *
 from antlr4.InputStream import InputStream
 from shapely.geometry import Polygon, Point 
+from law import parse_law, traffic_rules, eval_node
 
 inf_value = 1000
 
@@ -21,7 +22,6 @@ def polygon2polygon_distance(polygon_list1, polygon_list2):
             polygon2 = Polygon(polygon_list2[i])
             distance.append(polygon1.distance(polygon2))
     return np.array(distance)
-
 
 def polygon2point_distance(polygon_list, point):
     '''
@@ -40,7 +40,6 @@ def polygon2point_distance(polygon_list, point):
         distance.append(polygon.distance(p))
     return np.array(distance)
 
-
 def velocitylist_distance(list1, list2):
     n = min(len(list1), len(list2))
     v1 = np.array(list1)[0:n, 0:2]
@@ -48,13 +47,11 @@ def velocitylist_distance(list1, list2):
     vel_dis = np.linalg.norm(v1 - v2, axis=1)
     return vel_dis
 
-
 def velocitylist2point_distance(list1, velocity_point):
     v1 = np.array(list1)[:, 0:2]
     v_point = np.array(velocity_point)[0:2]
     vel_dis = np.linalg.norm(v1 - v_point, axis=1)
     return vel_dis
-
 
 def acclist_distance(list1, list2):
     n = min(len(list1), len(list2))
@@ -490,31 +487,35 @@ class Monitor:
             del spec
         return result
 
+def trace_timer_preprocess(traj, law_str):
+    implies = parse_law(law_str).implies
+    t1lexpr = None
+    t2lexpr = None
+    for lexpr, rexpr in implies :
+        if rexpr.name.find("t1") >=0:
+            t1lexpr = lexpr
+        if rexpr.name.find("t2") >=0:
+            t2lexpr = lexpr
+    if t1lexpr != None:
+        print(type(t1lexpr))
+        print(t1lexpr.name)
+        last_imply_t = -1
+        for i in range(len(traj)):
+            observation = traj[i]
+            hold = eval_node(observation, t1lexpr)
+            if hold :
+                if i %100==0:
+                    print(i)
+                last_imply_t = 0
+            else :
+                if last_imply_t >= 0:
+                    last_imply_t = last_imply_t + 1
+            # print(last_imply_t)
 
-from rtamt.syntax.node.ltl.predicate import Predicate
-# from rtamt.syntax.node.ltl.binary_node import BinaryNode
-from rtamt.syntax.ast.visitor.stl.ast_visitor import StlAstVisitor
-
-class PredicateCollector(StlAstVisitor):
-    def __init__(self):
-        self.predicates = []
-
-        
-    def visit(self, node, *args, **kwargs):
-        if isinstance(node, Predicate):
-            self.visit_predicate(node, args, kwargs)
-        else:
-            super().visit(node, *args, **kwargs)
-        
-    def visit_predicate(self, node, *args, **kwargs):
-        op = str(node.operator)
-        pre_str = node.name
-        # print(pre_str)
-        # print(op)
-        lhs = pre_str[1:pre_str.find(op)-1]
-        rhs = pre_str[pre_str.find(op)+len(op)+1:-1]
-        self.predicates.append((lhs, op, rhs))
-        # super().visit_predicate( node, args, kwargs)
+with open("/Users/haoyu/SMU/Pro2Guard/src/safereach/autonomous_vehicle/s10_pickles/Law44_1_sample_2.00000.20250717151128.record.pickle.json") as f:
+    traj =  json.loads(f.read())["trajectory"]
+trace_timer_preprocess(traj, traffic_rules["rule51_7"])  
+exit(0)
 
 if __name__ == "__main__": 
     import os
@@ -557,14 +558,14 @@ if __name__ == "__main__":
             trace = msg["trace"]
             monitor = Monitor(msg, specification, weather)
             score = monitor.continuous_monitor_for_muti_traffic_rules()
-            print(score)
-            for rule in score:
+            # print(score)
+            # for rule in score:
                 
-                if not rule in violated_laws:
-                    violated_laws[rule] = False
-                if score[rule] <=0:
-                    violated_laws[rule] = True
-            continue
+            #     if not rule in violated_laws:
+            #         violated_laws[rule] = False
+            #     if score[rule] <=0:
+            #         violated_laws[rule] = True
+            # continue
             time_seq = sorted(list(trace.keys()))
             fit_sccores = {}
             
@@ -602,9 +603,12 @@ if __name__ == "__main__":
                 log["fit_score"] = fit_sccores[key]
                 trajectory.append(log)
 
+
             log = {"trajectory": trajectory}
             with open(f"{path}.json", 'w') as w:
                 w.write(json.dumps(log))
+
+  
 
 print(violated_laws)
 violated = []
