@@ -2,6 +2,8 @@ import rtamt
 import operator
 
 from rtamt.syntax.node.ltl.predicate import Predicate
+from rtamt.syntax.node.ltl.eventually import Eventually
+from rtamt.syntax.node.ltl.always import Always
 from rtamt.syntax.node.ltl.implies import Implies
 # from rtamt.syntax.node.ltl.binary_node import BinaryNode
 from rtamt.syntax.ast.visitor.stl.ast_visitor import StlAstVisitor
@@ -193,17 +195,19 @@ def prepare_for_rule51_4():
     always (
         (
             (
-                (trafficLightAheadcolor == 3)
-                and
                 (
                     (NPCAheadAhead <= 8.0) 
                     -> 
                     (eventually ((t1<=2) and (NPCAheadspeed > 0.5)))
                 )
+                and
+
+                (trafficLightAheadcolor == 3)
+                
             )
             ->
             (
-                (eventually ((t2 < 3) and (speed > 0.5)))
+                (eventually ((t2 <= 3) and (speed > 0.5)))
                 and
                 (not (NPCAheadAhead <= 0.5))
             )
@@ -326,11 +330,11 @@ class PredicateCollector(StlAstVisitor):
         
     def visit(self, node, *args, **kwargs):
         if isinstance(node, Predicate):
-            self.visit_predicate(node, args, kwargs)
+            self.visit_predicate(node, args, kwargs) 
         elif isinstance(node, Implies):
             self.visit_impies(node, args, kwargs)
-        else:
-            super().visit(node, *args, **kwargs)
+            
+        super().visit(node, *args, **kwargs)
         
     def visit_predicate(self, node, *args, **kwargs):
         op = str(node.operator)
@@ -341,10 +345,11 @@ class PredicateCollector(StlAstVisitor):
         # super().visit_predicate( node, args, kwargs)
     
     def visit_impies(self, node, *args, **kwargs):
-        # print(node.name)
+        print("====")
+        print(node.name)
+        print("====")
         lexpr = node.children[0]
-        rexpr = node.children[1]
-        print(rexpr.name)
+        rexpr = node.children[1] 
         self.implies.append((lexpr, rexpr))
         
 traffic_rules = {
@@ -398,21 +403,39 @@ def eval_bin_op(lvalue, op, rvalue):
     binop = STR_TO_BINOP[op]
     return binop(lvalue, rvalue)    
 
-def eval_node(observation, node):
+def eval_temoral(traj, i, node):
+    pass
+
+    # else:
+    #     print(type(node))
+    #     raise Exception("unsupported type")
+
+def eval_node(traj, i, node):   
     if type(node) == Conjunction:
-        return eval_node(observation, node.children[0]) and eval_node(observation, node.children[1])
+        return eval_node(traj, i, node.children[0]) and eval_node(traj, i, node.children[1])
     elif type(node) == Disjunction:
-        return eval_node(observation, node.children[0]) or eval_node(observation, node.children[1]) 
+        return eval_node(traj, i, node.children[0]) or eval_node(traj, i, node.children[1])
+    elif type(node) == Implies:
+        # print(node.children[0].name)     
+        # print(not eval_node(traj, i, node.children[0]) )
+        # print("=>")
+        # print(node.children[1])
+        return not eval_node(traj, i, node.children[0]) or eval_node(traj, i, node.children[1])
     elif type(node) == Predicate:
+        observation = traj[i]
         op = str(node.operator)
         pre_str = node.name 
         lhs = pre_str[1:pre_str.find(op)-1]
         rhs = pre_str[pre_str.find(op)+len(op)+1:-1]
         return eval_pred(observation, (lhs, op, rhs))
+    elif type(node) == Eventually:
+        return any(eval_node(traj, j, node.children[0]) for j in range(i,len(traj)))
+    elif type(node) == Always:
+        return all(eval_node(traj, j, node.children[0]) for j in range(i,len(traj)))
     else: 
         print(type(node))
         raise Exception("unsupported node type")
-    return 
+
 
 def parse_law(law_str):
 

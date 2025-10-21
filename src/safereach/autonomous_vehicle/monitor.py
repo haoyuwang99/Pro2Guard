@@ -1,5 +1,6 @@
 import rtamt
 import sys
+import os
 import numpy as np
 from TracePreprocess import Trace
 import json
@@ -487,34 +488,56 @@ class Monitor:
             del spec
         return result
 
-def trace_timer_preprocess(traj, law_str):
+# if multiple clock variable has dependencies, make sure right depend on left
+def trace_timer_preprocess(traj, rule, clock_vars):
+    law_str = traffic_rules[rule]
     implies = parse_law(law_str).implies
-    t1lexpr = None
-    t2lexpr = None
+    
+    lexprs = [None] * len(clock_vars)
     for lexpr, rexpr in implies :
-        if rexpr.name.find("t1") >=0:
-            t1lexpr = lexpr
-        if rexpr.name.find("t2") >=0:
-            t2lexpr = lexpr
-    if t1lexpr != None:
-        print(type(t1lexpr))
-        print(t1lexpr.name)
+        print(lexpr.name)
+        print(rexpr.name)
+        for i in range(len(clock_vars)):
+            clock = clock_vars[i]
+            if rexpr.name.find(clock) >=0:
+                lexprs[i] = lexpr
+    
+    for i in range(len(clock_vars)):
+        lexpr = lexprs[i]
+        print(lexpr)
+        
+        if lexpr == None:
+            continue 
         last_imply_t = -1
-        for i in range(len(traj)):
-            observation = traj[i]
-            hold = eval_node(observation, t1lexpr)
+        for j in range(len(traj)):
+            # print(type(observation))
+            # print("ahasjkadjh")
+            # print("eval:", lexpr.name)
+            hold = eval_node(traj, j, lexpr)
+
             if hold :
-                if i %100==0:
-                    print(i)
+                if i%100==0:
+                    print(j)
                 last_imply_t = 0
             else :
                 if last_imply_t >= 0:
                     last_imply_t = last_imply_t + 1
-            # print(last_imply_t)
-
-with open("/Users/haoyu/SMU/Pro2Guard/src/safereach/autonomous_vehicle/s10_pickles/Law44_1_sample_2.00000.20250717151128.record.pickle.json") as f:
-    traj =  json.loads(f.read())["trajectory"]
-trace_timer_preprocess(traj, traffic_rules["rule51_7"])  
+            traj[j][clock_vars[i]]=last_imply_t
+    return traj
+    # print(last_imply_t)
+            
+LOG_DIR = "/Users/haoyu/SMU/Pro2Guard/src/safereach/logs/s10_pickles/"
+for f in os.listdir(LOG_DIR):
+    if f.startswith("preprocess_") or not f.endswith(".json"):
+        continue
+        
+    with open(LOG_DIR + f) as p:
+        traj =  json.loads(p.read())["trajectory"]
+    rule ="rule51_4"
+    processed_traj = trace_timer_preprocess(traj, rule, ["t1", "t2"])  
+    with open(f"{LOG_DIR}preprocess_{rule}_{f}", 'w') as w:
+        w.write(json.dumps(processed_traj))
+        
 exit(0)
 
 if __name__ == "__main__": 
