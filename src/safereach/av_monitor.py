@@ -4,6 +4,7 @@ import pickle
 from .autonomous_vehicle.abstraction import AVAbstraction, REACH_PREDICATE, COLLISION_PREDICATE, LAW_VIOLATION_PREDICATE, scenario_law_map
 from .runtime_monitor import runtime_monitor
 from .autonomous_vehicle.TracePreprocess import raw_to_lawbreaker_API
+from .autonomous_vehicle.law import *
  
 def load_abstraction(abstraction_desc_path):
     with open(abstraction_desc_path) as f:
@@ -13,8 +14,8 @@ def load_abstraction(abstraction_desc_path):
     return AVAbstraction(rule)
 
 
-LOG_BASE = "safereach/autonomous_vehicle/tests/"
-DTMC_BASE = "safereach/autonomous_vehicle/dtmcs/"
+LOG_BASE = "/Users/haoyu/SMU/AgentSpec/src/safereach/autonomous_vehicle/tests/"
+DTMC_BASE = "safereach/dtmcs/"
 
 unsafe_predicates = {
     "s1": LAW_VIOLATION_PREDICATE,
@@ -26,6 +27,7 @@ unsafe_predicates = {
     "s7": LAW_VIOLATION_PREDICATE,
     "s8": COLLISION_PREDICATE,
     "s9": LAW_VIOLATION_PREDICATE,
+    "s10": LAW_VIOLATION_PREDICATE,
 }
 # s6 and s7 violates law at the first timeframe??
 
@@ -37,8 +39,6 @@ for scenario in os.listdir(LOG_BASE):
 
     LOGDIR = f"{LOG_BASE}{scenario}/"
     if scenario in ["s6","s7"]:
-        continue
-    if not scenario in ["s10"]:
         continue
     rule = scenario_law_map[scenario][0]
     abs = AVAbstraction(rule)
@@ -66,6 +66,15 @@ for scenario in os.listdir(LOG_BASE):
         for n in nexts:
             with open(f"{LOGDIR}{n}") as f:
                 traj.extend(json.load(f)["trajectory"])
+                
+        t_vars = ["t1", "t2"]
+        # add tick
+        t_event = {} # maps t1 to lexpr
+        for t in t_vars:
+            lexprs = [lexpr for lexpr, rexpr in abs.implies if t in rexpr.name]
+            if len(lexprs) != 1:
+                continue
+            t_event[t] = lexprs[0]
             
         total_time = traj[-1]["time"]
         violation_time = -1
@@ -73,15 +82,32 @@ for scenario in os.listdir(LOG_BASE):
         monitor_time = -1
         monitored = False
         # calculate violation time:
+        t_values = { var: -1 for var in t_vars}
         for step in traj: 
             # we cannot calculate fit_score at runtime becuase of the overhead.
             # we assume at the current moment, no rule is violated.
+            for t in t_vars:
+                if t not in t_event:
+                    continue
+                t_lexpr = t_event[t]
+                # TODO- for runtime monitoring, we cannot foresee the future (no eventually, always...)
+                hold = eval_node([step], 0, t_lexpr)
+                if hold:
+                    t_values[t] = 0
+                elif t_values[t] >= 0:
+                    t_values[t] = t_values[t] + 1
+                step[t] = t_values[t]
+
             fit_score = float(step["fit_score"][rule])
             step["fit_score"] = {
                 rule: 1.0
             }
             if not monitored:
-                prob = runtime_monitor(step, model_path, abs, set(unsafe_states), cache = cache)
+                try :
+                    prob = runtime_monitor(step, model_path, abs, set(unsafe_states), cache = cache)
+                except:
+                    break
+                print(prob)
                 if not prob < 0.7:
                     monitor_time = step["time"]
                     monitored = True
@@ -105,8 +131,8 @@ for scenario in os.listdir(LOG_BASE):
                 
                 violated_and_detected = violated_and_detected + 1
                 ahead = ahead + violation_time - monitor_time
-        # print(f"monitor_time: {monitor_time}")
-        # print(f"violation_time: {violation_time}")
+        print(f"monitor_time: {monitor_time}")
+        print(f"violation_time: {violation_time}")
         # print(f"total_time: {total_time}")
         
     if violated_and_detected==0:

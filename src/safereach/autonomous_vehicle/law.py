@@ -33,7 +33,7 @@ def prepare_for_rule38_1():
     traffic_rule = '(\
                             always( (   (   (trafficLightAheadcolor == 3) and \
                                             (PriorityNPCAhead == 0) and (PriorityPedsAhead == 0)    ) \
-                                implies (eventually((t1 <= 100) and (speed > 0.5))) ) \
+                                implies (eventually((t1 >= 0) and (t1 <= 100) and (speed > 0.5))) ) \
                             )\
                     )'
     return traffic_rule
@@ -46,12 +46,12 @@ def prepare_for_rule38_2():
                                     ( \
                                         (\
                                             (trafficLightAheadcolor == 2) and ((currentLanenumber == 0))\
-                                        ) implies ( eventually((t1 <= 100) and (speed > 0.5)) )\
+                                        ) implies ((t1 >= 0) and eventually((t1 <= 100) and (speed > 0.5)) )\
                                     ) and \
                                     ( \
                                         (\
                                             (trafficLightAheadcolor == 2) and ((currentLanenumber > 0))\
-                                        ) implies ( eventually((t2 <= 100) and (speed < 0.5)) )\
+                                        ) implies ((t2 >= 0) and eventually((t2 <= 100) and (speed < 0.5)) )\
                                     ) \
                             ) \
                         )'
@@ -64,13 +64,13 @@ def prepare_for_rule38_3():
                                 ((stoplineAhead <= 2) or (junctionAhead <= 2)) and\
                                 (currentLanenumber > 0) and \
                                 (direction <= 1)) \
-                                implies ( eventually((t1<= 100) and (speed < 0.5)) )) and \
+                                implies ( eventually((t1 >= 0) and (t1<= 100) and (speed < 0.5)) )) and \
                                 (((trafficLightAheadcolor == 1) and \
                                 ((stoplineAhead <= 2) or (junctionAhead <= 2)) and \
                                 (direction == 2) and (PriorityNPCAhead == 0) and \
                                 (currentLanenumber > 0) and \
                                 (PriorityPedsAhead == 0) ) \
-                                implies ( eventually((t2 <= 100) and (speed > 0.5)) )) ) \
+                                implies ( eventually((t2 >= 0) and (t2 <= 100) and (speed > 0.5)) )) ) \
                             )'
     return traffic_rule
 
@@ -198,7 +198,7 @@ def prepare_for_rule51_4():
                 (
                     (NPCAheadAhead <= 8.0) 
                     -> 
-                    (eventually ((t1<=2) and (NPCAheadspeed > 0.5)))
+                    (eventually ((t1 >= 0) and (t1<=2) and (NPCAheadspeed > 0.5)))
                 )
                 and
 
@@ -207,7 +207,7 @@ def prepare_for_rule51_4():
             )
             ->
             (
-                (eventually ((t2 <= 3) and (speed > 0.5)))
+                (eventually ((t2 >= 0) and (t2 <= 3) and (speed > 0.5)))
                 and
                 (not (NPCAheadAhead <= 0.5))
             )
@@ -233,7 +233,7 @@ def prepare_for_rule51_5():
             )
             ->
             (
-                eventually ((t1<=2) and(speed < 0.5))
+                eventually ((t1>=0) and (t1<=2) and(speed < 0.5))
             )
         )
     )
@@ -250,11 +250,11 @@ def prepare_for_rule51_6():
                 and
                 (NPCAheadAhead <= 2.0)
                 and
-                (eventually ((t1<=2) and (NPCAheadspeed < 0.5)))
+                (eventually ((t1 >= 0) and (t1<=2) and (NPCAheadspeed < 0.5)))
             )
             ->
             (
-                eventually ((t2<=3) and (speed < 0.5))
+                eventually ((t2>=0) and (t2<=3) and (speed < 0.5))
             )
         )
     )
@@ -276,7 +276,7 @@ def prepare_for_rule51_7():
         )
         -> 
         (
-            eventually ((t1<=2) and (speed < 0.5))
+            eventually ((t1>=0) and (t1<=2) and (speed < 0.5))
         )
     )
 )
@@ -345,9 +345,9 @@ class PredicateCollector(StlAstVisitor):
         # super().visit_predicate( node, args, kwargs)
     
     def visit_impies(self, node, *args, **kwargs):
-        print("====")
-        print(node.name)
-        print("====")
+        # print("====")
+        # print(node.name)
+        # print("====")
         lexpr = node.children[0]
         rexpr = node.children[1] 
         self.implies.append((lexpr, rexpr))
@@ -380,7 +380,6 @@ STR_TO_BINOP = {
 
 #predicate is a tuple (lhs, op, rhs)
 def eval_pred(observation, predicate):
-
     lvalue = eval_expr(observation, predicate[0])
     op = predicate[1]
     rvalue = eval_expr(observation, predicate[2])

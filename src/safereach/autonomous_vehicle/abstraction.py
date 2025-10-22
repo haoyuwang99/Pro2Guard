@@ -78,6 +78,7 @@ class AVAbstraction(Abstraction):
         if not (rule in traffic_rules):
             raise Exception(f"unsupported rule {rule}")
         self.predicates = parse_law(traffic_rules[rule]).predicates
+        self.implies = parse_law(traffic_rules[rule]).implies
         self.rule = rule
         
         self.predicates = sorted(self.predicates)
@@ -86,8 +87,10 @@ class AVAbstraction(Abstraction):
         self.state_idx = None
         self.state_interpretation = None
 
+    # for autonomous vehicle runtime monitoring, we need to add tick variable
     # collision | law violation | reach | predicates 
     def encode(self, observation):
+        
         bitstr = ""
         collision = eval_pred(observation, COLLISION_PREDICATE)
         law_violation = observation["fit_score"][self.rule] <= 0.0 
