@@ -51,8 +51,7 @@ def build_model(logs: List[List[Any]], abs:Abstraction, alpha=1.0):
         reachable = []
         
         for j, s_to in enumerate(states):
-            if abs.can_reach(s_from, s_to):
-                
+            if abs.valid_trans(s_from, s_to):
                 count = transition_counts[i, j]
                 numerators.append((s_to, count + 1))  # Laplace: +1
                 denom += count + 1
@@ -84,13 +83,15 @@ def export_dtmc_to_prism(model, file_path="dtmc.prism", initial_state=0):
     states = model['states']
     state_index = model['state_index']
     transitions = model['transition_probs']
+    state_interp = model['state_interpret']
     K = len(states)
     with open(file_path, 'w') as f: 
 
        # Write PRISM DTMC model header
         f.write("dtmc\n\n")
         f.write("module dtmc_model\n\n")
-        f.write(f"    s : [0..{K - 1}] init {initial_state};\n\n")
+        for pred in state_interp[state]:
+            f.write(f"    s : [0..{K - 1}] init {initial_state};\n\n")
 
         # Write transitions for each state
         for state in states:

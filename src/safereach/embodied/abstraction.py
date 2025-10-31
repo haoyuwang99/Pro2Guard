@@ -214,7 +214,7 @@ class EmbodiedAbstraction(Abstraction):
                 res = res & filtered_states
         return res
  
-    def can_reach(self, state1: str, state2: str) -> bool:
+    def valid_trans(self, state1: str, state2: str) -> bool:
         if state2 == FINISH:
             return True
         if state1 == FINISH:
@@ -279,7 +279,7 @@ class EmbodiedAbstraction(Abstraction):
             for j in range(len(state_space)): 
                 s1, s2 = state_space[i], state_space[j]
 
-                if self.can_reach(s1, s2):
+                if self.valid_trans(s1, s2):
                     G.add_edge(s1, s2)
     
         print(f"Absorbing states: {find_absorbing_states(G)}")

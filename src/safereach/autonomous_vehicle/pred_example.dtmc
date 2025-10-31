@@ -1,0 +1,18 @@
+dtmc
+
+module traffic_rule
+
+    // Atomic predicates (Boolean features of the abstract state)
+    psi1 : bool init false; // light is green
+    psi2 : bool init true;  // no priority NPC
+    psi3 : bool init true;  // no priority pedestrian
+    psi4 : bool init false; // accelerated (speed > 0.5)
+
+    // Example probabilistic transitions between abstract states.
+    // These probabilities are placeholders; you'll fill them from the learned DTMC.
+    [] true ->
+        0.3 : (psi1'=true)  & (psi2'=true)  & (psi3'=true)  & (psi4'=psi4)
+      + 0.4 : (psi1'=psi1) & (psi2'=psi2) & (psi3'=psi3) & (psi4'=true) // accelerate
+      + 0.3 : (psi1'=psi1) & (psi2'=psi2) & (psi3'=psi3) & (psi4'=psi4); 
+
+endmodule

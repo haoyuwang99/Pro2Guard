@@ -22,23 +22,17 @@ VARIABLE_APIS = ['gear', 'engineOn', 'direction', 'manualIntervention', \
     'fog', 'trafficLightAheadArrowDirectioncolor', 'trafficLightAheadArrowDirectionblink', 'visibility']
     
 
+        
 def prepare_for_rule38_1():              
     #GREEN = 3; 
-    # Note: the conversion from eventually[0,100](speed > 0.5) to eventually(time <= 100 and speed > 0.5)
-    # introduces a new variable time, which requires a counter from left event 
-    # (i.e., (trafficLightAheadcolor == 3) and  (PriorityNPCAhead == 0) and (PriorityPedsAhead == 0) ) being triggered.
-    
-    # 1: add tick, add 1 if precondition not satisfied, reset to 0 if event triggered.
-    # 2:  eventually p = for any time point later, exist p is satisfied
     traffic_rule = '(\
                             always( (   (   (trafficLightAheadcolor == 3) and \
                                             (PriorityNPCAhead == 0) and (PriorityPedsAhead == 0)    ) \
-                                implies (eventually((t1 >= 0) and (t1 <= 100) and (speed > 0.5))) ) \
+                                implies (eventually[0,100](speed > 0.5)) ) \
                             )\
                     )'
     return traffic_rule
 
-# t1 and t2 indicate the time after satifaction of first and second precondition
 def prepare_for_rule38_2():              
     #YELLOW = 2;
     traffic_rule = '(\
@@ -46,12 +40,12 @@ def prepare_for_rule38_2():
                                     ( \
                                         (\
                                             (trafficLightAheadcolor == 2) and ((currentLanenumber == 0))\
-                                        ) implies ((t1 >= 0) and eventually((t1 <= 100) and (speed > 0.5)) )\
+                                        ) implies ( eventually[0,100](speed > 0.5) )\
                                     ) and \
                                     ( \
                                         (\
                                             (trafficLightAheadcolor == 2) and ((currentLanenumber > 0))\
-                                        ) implies ((t2 >= 0) and eventually((t2 <= 100) and (speed < 0.5)) )\
+                                        ) implies ( eventually[0,100](speed < 0.5) )\
                                     ) \
                             ) \
                         )'
@@ -64,33 +58,33 @@ def prepare_for_rule38_3():
                                 ((stoplineAhead <= 2) or (junctionAhead <= 2)) and\
                                 (currentLanenumber > 0) and \
                                 (direction <= 1)) \
-                                implies ( eventually((t1 >= 0) and (t1<= 100) and (speed < 0.5)) )) and \
+                                implies ( eventually[0,100](speed < 0.5) )) and \
                                 (((trafficLightAheadcolor == 1) and \
                                 ((stoplineAhead <= 2) or (junctionAhead <= 2)) and \
                                 (direction == 2) and (PriorityNPCAhead == 0) and \
                                 (currentLanenumber > 0) and \
                                 (PriorityPedsAhead == 0) ) \
-                                implies ( eventually((t2 >= 0) and (t2 <= 100) and (speed > 0.5)) )) ) \
+                                implies ( eventually[0,100](speed > 0.5) )) ) \
                             )'
     return traffic_rule
 
-# def prepare_for_rule38():              
-#     # message TrafficLight {
-#     #   enum Color {
-#     #     UNKNOWN = 0;
-#     #     RED = 1;
-#     #     YELLOW = 2;
-#     #     GREEN = 3;
-#     #     BLACK = 4;
-#     #   };       
-#     # we should put different weight on different variables!
-#     traffic_rule = '(always(((trafficLightAheadcolor == 3) and ((stoplineAhead <= 2) or (junctionAhead <= 2)) and (PriorityNPCAhead == 0) and (PriorityPedsAhead == 0)) implies ( speed >= 0.1 ))   and \
-#                             always((((trafficLightAheadcolor == 2) and ((stoplineAhead == 0) or (stoplineAhead > 50))) implies ( speed > 0.1 )) and \
-#                                     (((trafficLightAheadcolor == 2) and (stoplineAhead <= 2)) implies (speed < 0.1)) ) and \
-#                             always((((trafficLightAheadcolor == 1) and ((stoplineAhead <= 2) or (junctionAhead <= 2)) and (direction <= 1)) implies ( speed < 0.1 )) and \
-#                                     (((trafficLightAheadcolor == 1) and ((stoplineAhead <= 2) or (junctionAhead <= 2)) and (direction == 2) and (PriorityNPCAhead == 0) and (PriorityPedsAhead == 0) ) implies ( speed >= 0.1 )) ) \
-#                             )'
-#     return traffic_rule
+def prepare_for_rule38():              
+    # message TrafficLight {
+    #   enum Color {
+    #     UNKNOWN = 0;
+    #     RED = 1;
+    #     YELLOW = 2;
+    #     GREEN = 3;
+    #     BLACK = 4;
+    #   };       
+    # we should put different weight on different variables!
+    traffic_rule = '(always(((trafficLightAheadcolor == 3) and ((stoplineAhead <= 2) or (junctionAhead <= 2)) and (PriorityNPCAhead == 0) and (PriorityPedsAhead == 0)) implies ( speed >= 0.1 ))   and \
+                            always((((trafficLightAheadcolor == 2) and ((stoplineAhead == 0) or (stoplineAhead > 50))) implies ( speed > 0.1 )) and \
+                                    (((trafficLightAheadcolor == 2) and (stoplineAhead <= 2)) implies (speed < 0.1)) ) and \
+                            always((((trafficLightAheadcolor == 1) and ((stoplineAhead <= 2) or (junctionAhead <= 2)) and (direction <= 1)) implies ( speed < 0.1 )) and \
+                                    (((trafficLightAheadcolor == 1) and ((stoplineAhead <= 2) or (junctionAhead <= 2)) and (direction == 2) and (PriorityNPCAhead == 0) and (PriorityPedsAhead == 0) ) implies ( speed >= 0.1 )) ) \
+                            )'
+    return traffic_rule
 
 def prepare_for_rule42():
     # \begin{aligned}
@@ -99,7 +93,7 @@ def prepare_for_rule42():
     #     & (trafficLightAhead.direction.color = yellow \land \\
     #     & trafficLightAhead.direction.blink)) \land \\
     #     & ( stoplineAhead(realvalue) \lor junctionAhead(realvalue) )\\
-    #     & \implies speed < realvalue )
+    #     & \implies    speed < realvalue )
     # \end{aligned}          
     traffic_rule = '(always(((trafficLightAheadcolor == 2) and \
                             (trafficLightAheadblink == 1) and \
@@ -186,141 +180,39 @@ def prepare_for_rule50():
     traffic_rule = '(always ((not (gear==2))))'
     return traffic_rule
 
-# def prepare_for_rule51_3():
-#     traffic_rule = "(always ((((((((trafficLightAheadcolor==3) and (direction==1)) and (Time<=20.0)) and (Time>=7.0))) -> ((turnSignal==1))) and (((((trafficLightAheadcolor==3) and (direction==1)) and (((Time>=20.0) or (Time<=7.0))))) -> (((turnSignal==1) and (lowBeamOn==1)))))))"
-#     return traffic_rule
+def prepare_for_rule51_3():
+    traffic_rule = "(always ((((((((trafficLightAheadcolor==3) and (direction==1)) and (Time<=20.0)) and (Time>=7.0))) -> ((turnSignal==1))) and (((((trafficLightAheadcolor==3) and (direction==1)) and (((Time>=20.0) or (Time<=7.0))))) -> (((turnSignal==1) and (lowBeamOn==1)))))))"
+    return traffic_rule
 
 def prepare_for_rule51_4():
-    traffic_rule = """(
-    always (
-        (
-            (
-                (
-                    (NPCAheadAhead <= 8.0) 
-                    -> 
-                    (eventually ((t1 >= 0) and (t1<=2) and (NPCAheadspeed > 0.5)))
-                )
-                and
-
-                (trafficLightAheadcolor == 3)
-                
-            )
-            ->
-            (
-                (eventually ((t2 >= 0) and (t2 <= 3) and (speed > 0.5)))
-                and
-                (not (NPCAheadAhead <= 0.5))
-            )
-        )
-    )
-)"""
+    traffic_rule = "(always ((((trafficLightAheadcolor==3) and (((not (NPCAheadAhead<=8.0)) or (((((NPCAheadAhead<=8.0) -> (eventually[0,2] ((NPCAheadspeed>0.5))))) and (NPCAheadAhead<=8.0)))))) -> (((eventually[0,3] ((speed>0.5)))) and (not (NPCAheadAhead<=0.5))))))"
     return traffic_rule
 
 def prepare_for_rule51_5():
-    traffic_rule = """(
-    always (
-        (
-            (
-                (trafficLightAheadcolor == 1)
-                and
-                (
-                    (stoplineAhead <= 2.0)
-                    or
-                    (junctionAhead <= 2.0)
-                    or
-                    (NPCAheadAhead <= 0.5)
-                )
-            )
-            ->
-            (
-                eventually ((t1>=0) and (t1<=2) and(speed < 0.5))
-            )
-        )
-    )
-)"""
-
+    traffic_rule = "(always ((((trafficLightAheadcolor==1) and ((((stoplineAhead<=2.0) or (junctionAhead<=2.0)) or (NPCAheadAhead<=0.5)))) -> (eventually[0,2] ((speed<0.5))))))"
     return traffic_rule
 
 def prepare_for_rule51_6():
-    traffic_rule = """(
-    always (
-        (
-            (
-                (direction == 2)
-                and
-                (NPCAheadAhead <= 2.0)
-                and
-                (eventually ((t1 >= 0) and (t1<=2) and (NPCAheadspeed < 0.5)))
-            )
-            ->
-            (
-                eventually ((t2>=0) and (t2<=3) and (speed < 0.5))
-            )
-        )
-    )
-)"""
-
+    traffic_rule = "(always ((((((direction==2) and (NPCAheadAhead<=2.0)) and ((eventually[0,2] ((NPCAheadspeed<0.5)))))) -> (eventually[0,3] ((speed<0.5))))))"
     return traffic_rule
 
 def prepare_for_rule51_7():
-    traffic_rule = """(
-    always(
-        (
-            (
-                (direction == 2) or (direction == 1)
-            )
-            and
-            (
-                (PriorityNPCAhead == 1) or (PriorityPedsAhead == 1)
-            )
-        )
-        -> 
-        (
-            eventually ((t1>=0) and (t1<=2) and (speed < 0.5))
-        )
-    )
-)
-"""
-
+    traffic_rule = "(always (((((((direction==2) or (direction==1))) and (((PriorityNPCAhead==1) or (PriorityPedsAhead==1))))) -> (eventually[0,2] ((speed<0.5))))))"
     return traffic_rule
 
 def prepare_for_rule52():
     traffic_rule = "(\
                     always (\
                                 ((signalAhead==0 and (NPCAheadAhead<=1)) and junctionAhead<=1.0) \
-                                -> (eventually ((t1<=300) and (speed<0.5)))\
+                                -> (eventually[0,300] (speed<0.5))\
                             ) \
                     )"
     # traffic_rule = "(always (((((signalAhead==0 and ((NPCAheadAhead<=1 or PriorityPedsAhead<=1))) and junctionAhead<=1.0)) -> (eventually[0,200] (speed<0.5)))))"
     return traffic_rule
 
 def prepare_for_rule53():
-    traffic_rule = """(
-    always(
-        (
-            (
-                (isTrafficJam == 1)
-                and
-                (
-                    (NPCAheadspeed < 0.5)
-                    or
-                    (NPCAheadAhead <= 0.5)
-                    or
-                    (junctionAhead <= 1.0)
-                )
-            )
-            ->
-            (
-                eventually ((t1<=200) and (speed < 0.5))
-            )
-        )
-    )
-)
-"""
+    traffic_rule = "(always ((((isTrafficJam==1 and (((NPCAheadspeed<0.5 or NPCAheadAhead<=0.5) or junctionAhead<=1.0)))) -> (eventually[0,200] (speed<0.5)))))"
     return traffic_rule
-
-# def is_ancestor(node1, node2):
-#     while node1.
 
 class PredicateCollector(StlAstVisitor):
     def __init__(self):
@@ -435,6 +327,8 @@ def eval_node(traj, i, node):
         print(type(node))
         raise Exception("unsupported node type")
 
+def translate_to_pctl(law_str):
+    pass
 
 def parse_law(law_str):
 

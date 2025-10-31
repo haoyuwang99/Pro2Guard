@@ -67,14 +67,14 @@ for scenario in os.listdir(LOG_BASE):
             with open(f"{LOGDIR}{n}") as f:
                 traj.extend(json.load(f)["trajectory"])
                 
-        t_vars = ["t1", "t2"]
+        # t_vars = ["t1", "t2"]
         # add tick
         t_event = {} # maps t1 to lexpr
-        for t in t_vars:
-            lexprs = [lexpr for lexpr, rexpr in abs.implies if t in rexpr.name]
-            if len(lexprs) != 1:
-                continue
-            t_event[t] = lexprs[0]
+        # for t in t_vars:
+        #     lexprs = [lexpr for lexpr, rexpr in abs.implies if t in rexpr.name]
+        #     if len(lexprs) != 1:
+        #         continue
+        #     t_event[t] = lexprs[0]
             
         total_time = traj[-1]["time"]
         violation_time = -1
@@ -82,21 +82,10 @@ for scenario in os.listdir(LOG_BASE):
         monitor_time = -1
         monitored = False
         # calculate violation time:
-        t_values = { var: -1 for var in t_vars}
+        # t_values = { var: -1 for var in t_vars}
         for step in traj: 
             # we cannot calculate fit_score at runtime becuase of the overhead.
             # we assume at the current moment, no rule is violated.
-            for t in t_vars:
-                if t not in t_event:
-                    continue
-                t_lexpr = t_event[t]
-                # TODO- for runtime monitoring, we cannot foresee the future (no eventually, always...)
-                hold = eval_node([step], 0, t_lexpr)
-                if hold:
-                    t_values[t] = 0
-                elif t_values[t] >= 0:
-                    t_values[t] = t_values[t] + 1
-                step[t] = t_values[t]
 
             fit_score = float(step["fit_score"][rule])
             step["fit_score"] = {
@@ -115,8 +104,6 @@ for scenario in os.listdir(LOG_BASE):
                 if predicate == COLLISION_PREDICATE and step["collision"] == 1:
                     violation_time = step["time"]
                     violated= True
-                    # print("collision")
-                    # print(step["time"])
                 elif predicate == LAW_VIOLATION_PREDICATE and fit_score <= 0.0:
                     violation_time = step["time"]
                     violated= True

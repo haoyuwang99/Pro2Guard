@@ -5,7 +5,7 @@ from .abstraction import Abstraction
 
  
 #returns true if intervention needed.  
-def runtime_monitor(observation, dtmc_path, abs: Abstraction, unsafe_states, cache={}):  
+def runtime_monitor(observation, dtmc_path, abs: Abstraction, cache={}):  
     # print(cache)
     state_idx = abs.get_state_idx()
 
@@ -15,18 +15,8 @@ def runtime_monitor(observation, dtmc_path, abs: Abstraction, unsafe_states, cac
     current_state = state_idx[current_state]
     # t = time.time() - t
     # print(f"abstract: {t * 1000:.2f} ms")
-
-    # Step 2: Cache check
-    # print(cache)
-    cache_hit = (current_state, str(unsafe_states)) in cache
-    # print((current_state, str(unsafe_states)))
-    if cache_hit:
-        # print("hit")
-        return cache[(current_state, str(unsafe_states))]
-
-    # print("cache: miss")
     
-    # Step 3: Rewrite DTMC init state
+    # Step 2: Rewrite DTMC init state
     # t = time.time()
     with open(dtmc_path, 'r') as f:
         model_txt = f.read()
@@ -47,6 +37,7 @@ def runtime_monitor(observation, dtmc_path, abs: Abstraction, unsafe_states, cac
         state = "(" +  "|".join([f"s={s}" for s in unsafe_states]) + ")"
     # print(unsafe_states)
 
+
     pctl_formula = f"P=? [ F {state} ]"
     cmd = f"../prism/bin/prism {dtmc_path} -pf \"{pctl_formula}\""
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -54,7 +45,6 @@ def runtime_monitor(observation, dtmc_path, abs: Abstraction, unsafe_states, cac
     match = re.search(r"Result:\s*([0-9.]+)", result.stdout)
     if match:
         prob = float(match.group(1))
-        cache[(current_state, str(unsafe_states))] = prob  # Save to cache
         return prob
         # if prob > threshold:
         #     return True
