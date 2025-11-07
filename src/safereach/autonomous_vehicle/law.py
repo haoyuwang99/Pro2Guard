@@ -111,7 +111,8 @@ def prepare_for_rule44():
     #     & \implies  \lnot PriorityNPCAhead)
     # \end{aligned}          
     traffic_rule = '(   always( (currentLanenumber >= 201) \
-                                implies ((eventually[0,6000](currentLanenumber >= 201 implies speed >= 20)) and (speed <= speedLimitupperLimit))))'
+                                implies ((eventually[0,6000](currentLanenumber >= 201 implies speed >= 20))\
+                                    and (speed <= speedLimitupperLimit))))'
     return traffic_rule
 
 def prepare_for_rule45():
@@ -333,7 +334,7 @@ def translate_to_pctl(law_str):
 def parse_law(law_str):
 
     spec = rtamt.StlDenseTimeSpecification(semantics=rtamt.Semantics.STANDARD)
-
+    
     for item in VARIABLE_APIS:
         spec.declare_var(item, 'float')
     spec.declare_var("t1", "int")
@@ -346,7 +347,7 @@ def parse_law(law_str):
     ast = spec.ast.specs[0]
 
     collector = PredicateCollector()
-    collector.visit(ast)
+    print(type(ast))
     
     return collector
 

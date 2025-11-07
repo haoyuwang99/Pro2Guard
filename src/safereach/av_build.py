@@ -27,5 +27,3 @@ for s in os.listdir(SAMPLES):
             logs.append(trace)
     av_build_model(abs, logs, model_path=f"safereach/dtmcs/{s}/")
     
-
-    

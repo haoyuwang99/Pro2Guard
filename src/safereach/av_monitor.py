@@ -67,33 +67,22 @@ for scenario in os.listdir(LOG_BASE):
             with open(f"{LOGDIR}{n}") as f:
                 traj.extend(json.load(f)["trajectory"])
                 
-        # t_vars = ["t1", "t2"]
-        # add tick
         t_event = {} # maps t1 to lexpr
-        # for t in t_vars:
-        #     lexprs = [lexpr for lexpr, rexpr in abs.implies if t in rexpr.name]
-        #     if len(lexprs) != 1:
-        #         continue
-        #     t_event[t] = lexprs[0]
             
         total_time = traj[-1]["time"]
         violation_time = -1
         violated = False
         monitor_time = -1
         monitored = False
-        # calculate violation time:
-        # t_values = { var: -1 for var in t_vars}
         for step in traj: 
-            # we cannot calculate fit_score at runtime becuase of the overhead.
-            # we assume at the current moment, no rule is violated.
-
             fit_score = float(step["fit_score"][rule])
             step["fit_score"] = {
                 rule: 1.0
             }
             if not monitored:
                 try :
-                    prob = runtime_monitor(step, model_path, abs, set(unsafe_states), cache = cache)
+                    # translate the STL formula to PCTL (which depends on runtime information)
+                    prob = runtime_monitor(step, model_path, abs, cache = cache)
                 except:
                     break
                 print(prob)

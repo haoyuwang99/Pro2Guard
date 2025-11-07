@@ -82,9 +82,6 @@ def eval_reflect():
     print(f"before {total_cnt}:")
     print(unsafe_cnt*1.0/total_cnt)
     print(complete_cnt*1.0/total_cnt)
-eval_reflect()
-exit(0)
-            
 
 def eval_stop():
     complete_cnt = 0

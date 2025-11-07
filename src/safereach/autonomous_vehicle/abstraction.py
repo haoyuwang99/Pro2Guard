@@ -5,10 +5,9 @@ import math
 from deepdiff import DeepDiff
 from ..abstraction import Abstraction, FINISH
 from .law import *
-from typing import Any, Set, List, Dict
+from typing import Any, Set, List, Dict, Mapping
 import networkx as nx
 import matplotlib.pyplot as plt
-import z3
 from z3 import Bool, FP, FPVal, Float32, And, Or, Not, Solver, sat
 
 OP_MAP = {
@@ -69,10 +68,8 @@ VARIABLE_APIS = ['gear', 'engineOn', 'direction', 'manualIntervention', \
     'fog', 'trafficLightAheadArrowDirectioncolor', 'trafficLightAheadArrowDirectionblink', 'visibility']
     
     
-REACH_PREDICATE = ("reach_destination", "==", '1')
-COLLISION_PREDICATE = ("collision", "==", "1")
-LAW_VIOLATION_PREDICATE = ("fit_score", "<=", 0.0)
-
+REACH = "reach_destination==1"
+COLLISION = "collision==1"
 
 #predicate is a tuple (lhs, op, rhs)
 def eval_pred(observation, predicate):
@@ -115,6 +112,12 @@ scenario_law_map = {
     "s10": ['rule51_7'],
 }
 
+def satisfy(observation, formula) -> bool:
+    # formula -> predicates
+    # evalulate propositions
+    # eval formula
+    pass
+
 class AVAbstraction(Abstraction):
     
     # law_str example, see monitor.py:
@@ -127,14 +130,15 @@ class AVAbstraction(Abstraction):
 
         if not (rule in traffic_rules):
             raise Exception(f"unsupported rule {rule}")
-        self.predicates = parse_law(traffic_rules[rule]).predicates
-        self.implies = parse_law(traffic_rules[rule]).implies
+        collector = parse_law(traffic_rules[rule])
+        self.predicates = collector.predicates
+        self.implies = collector.implies
         self.rule = rule
-        print("before dedup:" , len(self.predicates))
+
         self.predicates = sorted(list(set(self.predicates)))
-        print(len(self.predicates))
+
         self.state_space=sorted(list(self.enumerate_possible_states()))
-        print(len(self.state_space))
+
         self.state_idx = None
         self.state_interpretation = None
 
@@ -143,9 +147,8 @@ class AVAbstraction(Abstraction):
     def encode(self, observation):
         
         bitstr = ""
-        collision = eval_pred(observation, COLLISION_PREDICATE)
-        law_violation = observation["fit_score"][self.rule] <= 0.0 
-        reach = eval_pred(observation, REACH_PREDICATE)
+        collision = eval_pred(observation, COLLISION) 
+        reach = eval_pred(observation, REACH)
         
         # if collision/reach/law violation happens, we do not care about predicates.
         if collision :
@@ -215,12 +218,32 @@ class AVAbstraction(Abstraction):
             return False
         return True
 
-    def get_state_idx(self) -> Dict[str, int]:  
+    def get_state_idx(self) -> Mapping[str, int]:  
         if self.state_idx == None:
             self.state_idx = {s:i for i, s in enumerate(self.state_space)}
         return self.state_idx
 
-    def get_state_interpretation(self) -> Dict[str, Any]:
+    def filter(self, spec = (COLLISION,True)) -> List[str]:
+        
+        supported_specs = [COLLISION, REACH]
+
+        # if not spec in supported_specs :
+        #     raise Exception("unsupported predicate")
+        res= []
+        for s in self.state_space:
+            observation = self.decode(s)
+            if satisfy(observation, spec):
+                res.append(s)
+            
+        # if spec == COLLISION:
+        #     res.add("10" + "0" * len(self.predicates))
+        # elif spec == REACH:
+        #     res.add("01" + "0" * len(self.predicates))
+        # else:
+        #     raise Exception(f"Unexpected Spec: {spec}")
+        return [self.state_idx[s] for s in res]   
+    
+    def get_state_interpretation(self) -> Mapping[str, Mapping[str, bool]]: #Mapping: predicate str -> value
         if self.state_interpretation == None:
             self.state_interpretation = {s: list(zip([convert_to_bool_var(p) for p in self.predicates],\
                 [ True if bit == '1' else False for bit in s])) for s in self.state_space}
@@ -230,8 +253,8 @@ class AVAbstraction(Abstraction):
     def to_json(self) -> str:
         obj = {
             "predicates":  self.predicates,
-            "reach" : REACH_PREDICATE, 
-            "collision": COLLISION_PREDICATE,
+            "reach" : REACH, 
+            "collision": COLLISION,
             "rule":self.rule
         }
         return json.dumps(obj)

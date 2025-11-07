@@ -30,6 +30,9 @@ def runtime_monitor(observation, dtmc_path, abs: Abstraction, cache={}):
     with open(dtmc_path, 'w') as f:
         f.write(updated_model)
     # Step 4: Run PRISM to check the prob reaching unsafe state
+    formula = "G(a->b)"
+    # convert the formula into PCTL
+    
     states = ""
     if len(unsafe_states)==1:
         state = f"s={list(unsafe_states)[0]}"
@@ -52,3 +55,4 @@ def runtime_monitor(observation, dtmc_path, abs: Abstraction, cache={}):
         print(result.stdout)
         print(result.stderr)
         raise RuntimeError("Could not parse probability from PRISM output.")
+    

@@ -15,57 +15,55 @@ from .abstraction import Abstraction
 # transition
 def build_model(logs: List[List[Any]], abs:Abstraction, alpha=1.0):
 
-    states = abs.state_space
-    state_idx = abs.get_state_idx()
-    state_interpret = abs.get_state_interpretation()
-    K = len(abs.state_space)
+    state_transitions = [ ]
+    state_space = set()
+    for log in logs:
+        state_tran = []
+        for obs in log:
+            state = abs.encode(obs) 
+            state_tran.append(state)
+            state_space.add(state)
+        state_transitions.append(state_tran)
     
+    K = len(state_space)
+    
+    state_idx = abs.get_state_idx(state_space)
+    state_interpret = abs.get_state_interpretation(state_space)
     # Initialize count matrix
     transition_counts = np.zeros((K, K), dtype=int)
-    
-    for observations in logs:
-        state_trans = []
+    for state_tran in state_transitions:
         prev_state = None
-        for observation in observations: 
-            state_trans.append(abs.encode(observation))  
-        # state_trans.append(FINISH)
-        
-        prev_state = None
-        for state in state_trans: 
-            if state not in state_idx: 
-                # print(type(state))
-                # print(abs.get_state_interpretation()[state])
-                # print(abs.decode(state))
-                raise Exception("unexpected state in the observation")
-                continue  # Ignore states not in defined state space
+        for state in state_tran: 
             if prev_state is not None and prev_state in state_idx:
                 i, j = state_idx[prev_state], state_idx[state]
                 transition_counts[i, j] += 1
             prev_state = state
 
-    # Apply Laplace smoothing over reachable transitions
+    # Apply Laplace smoothing over reachable transitions 
     transition_probs: Dict[str, Dict[str, str]] = {}
-    for i, s_from in enumerate(states):
+    for i, s_from in enumerate(list(state_space)):
         numerators = []
         denom = 0
         reachable = []
-        
-        for j, s_to in enumerate(states):
+
+        for j, s_to in enumerate(list(state_space)):    
             if abs.valid_trans(s_from, s_to):
                 count = transition_counts[i, j]
-                numerators.append((s_to, count + 1))  # Laplace: +1
+                numerators.append((s_to, count + alpha))  # Laplace: +1
                 denom += count + 1
                 reachable.append(j)
 
         transition_probs[s_from] = {
-            s_to: str(Fraction(n, denom))
+            s_to: str(Fraction(n).limit_denominator() / Fraction(denom))
             for s_to, n in numerators
         }
    
     return {
-        "states": states,
+        "states": list(state_space),
         "state_index": state_idx,
         "state_interpret": state_interpret,
+        "transition_counts" : {i: {j: int(transition_counts[i, j]) for j in range(K) if transition_counts[i,j] > 0}
+          for i in range(K) if any(transition_counts[i, j] > 0 for j in range(K))},
         "transition_probs": transition_probs
     }
   
@@ -83,19 +81,19 @@ def export_dtmc_to_prism(model, file_path="dtmc.prism", initial_state=0):
     states = model['states']
     state_index = model['state_index']
     transitions = model['transition_probs']
-    state_interp = model['state_interpret']
     K = len(states)
     with open(file_path, 'w') as f: 
 
        # Write PRISM DTMC model header
         f.write("dtmc\n\n")
         f.write("module dtmc_model\n\n")
-        for pred in state_interp[state]:
-            f.write(f"    s : [0..{K - 1}] init {initial_state};\n\n")
+        f.write(f"    s : [0..{K - 1}] init {initial_state};\n\n")
 
         # Write transitions for each state
         for state in states:
             i = state_index[state]
+            if state not in transitions:
+                continue
             row = transitions[state]
             transition_list = []
 

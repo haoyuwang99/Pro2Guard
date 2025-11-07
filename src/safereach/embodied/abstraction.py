@@ -46,7 +46,7 @@ class EmbodiedAbstraction(Abstraction):
             self.rec_bit_len = math.ceil(math.log2(len(parentReceptacles))) + 1
 
         self.obj_len = self.ty_bit_len + len(self.keys) + self.rec_bit_len
-        self.state_space=sorted(list(self.enumerate_possible_states()))
+        
         self.state_idx = None
         self.state_interpretation = None
      
@@ -58,22 +58,16 @@ class EmbodiedAbstraction(Abstraction):
         }
         return json.dumps(obj)
 
-    def get_state_idx(self) -> Dict[str, int]:
+    def get_state_idx(self, states) -> Dict[str, int]:
         if self.state_idx == None:
-            self.state_idx = {s:i for i, s in enumerate(self.state_space)}
-
+            self.state_idx = {s:i for i, s in enumerate(states)}
         return self.state_idx
 
-    def get_state_interpretation(self) -> Dict[str, Any]:
+    def get_state_interpretation(self, states) -> Dict[str, Any]:
         if self.state_interpretation == None:
-            self.state_interpretation = {s: self.decode(s) for s in self.state_space}
+            self.state_interpretation = {s: self.decode(s) for s in states}
         return self.state_interpretation
 
-    # def from_json(path) -> EmbodiedAbstraction:
-    #     with open(path) as f:
-    #         obj = json.loads(f.read())
-    #         return EmbodiedAbstraction(set(obj["objectTypes"]), set(obj["keys"], set(obj["parentReceptacles"])))
-     
     def encode(self, observation: Any) -> str:
         if observation == FINISH:
             return FINISH
@@ -99,11 +93,8 @@ class EmbodiedAbstraction(Abstraction):
             if not has_rec:
                 bitstr += format(0, f"0{self.rec_bit_len}b")     
             
-        if not bitstr in self.state_space:
-            raise Exception("unvalid state")
         return bitstr
 
- 
     def decode(self, state: str) -> Any: 
         if state == FINISH:
             return FINISH
@@ -133,60 +124,6 @@ class EmbodiedAbstraction(Abstraction):
             observations.append(observation)
         
         return observations
-    
-    def enumerate_possible_states(self) -> Set[str]: 
-        prefixes = {}
-        for object_type in self.object_types:
-            prefixes[object_type] = [format(self.obj_type_to_index[object_type], f'0{self.ty_bit_len}b')]
-        
-        # for each object type, enumerate its possible configuration
-        for object_type in self.object_types:
-            for i in range(len(self.keys)):
-                key = self.keys[i]
-                n = len(prefixes[object_type])
-                # enumerate all the possible state prefixes
-                for j in range(n):
-                    prefix = prefixes[object_type].pop(0)
-                    type_bitstr = prefix[:self.ty_bit_len]
-                    type_idx = int(type_bitstr, 2) - 1
-                    type = self.object_types[type_idx]
-                    
-                    profile = type_profile[type]
-                    keyable = keys_map[key]
-                    
-                    prefix_0 = prefix + "0"
-                    prefixes[object_type].append(prefix_0) 
-                    if profile[keyable]: 
-                        prefix_1 = prefix + "1"
-                        prefixes[object_type].append(prefix_1)     
-        # add description that an object is in receptacles.
-
-        for object_type in self.object_types:
-            n = len(prefixes[object_type])   
-            for i in range(n):
-                prefix = prefixes[object_type].pop(0)
-                        
-                type_bitstr = prefix[:self.ty_bit_len]
-                type_idx = int(type_bitstr, 2) - 1
-                type = self.object_types[type_idx]
-    
-                profile = type_profile[type]  
-                no_receptacles = format(0, f"0{self.rec_bit_len}b")
-                prefixes[object_type].append(prefix + no_receptacles) 
-                if profile["pickupable"]:
-                    for rec in self.parentReceptacles:
-                        re_idx = format(self.rec_type_to_index[rec], f'0{self.rec_bit_len}b')
-                        prefixes[object_type].append(prefix + re_idx)
-        values = list(prefixes.values())
-        state_space = values[0] 
-        for i in range(1, len(self.object_types)):
-            n = len(state_space)
-            for _ in range(n):
-                prefix = state_space.pop(0)
-                for j in range(len(values[i])):
-                    state_space.append(prefix + values[i][j])
-        state_space.append(FINISH)
-        return set(state_space)
     
     def filter(self, specs) -> Set[str]:
 
@@ -292,7 +229,6 @@ class EmbodiedAbstraction(Abstraction):
         nx.draw(G, pos, with_labels=False, node_size=100, arrows=True)
         plt.title("State Transition Graph")
         plt.show()
-
 
 
 def process_type_profile():
