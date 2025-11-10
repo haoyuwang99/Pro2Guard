@@ -87,7 +87,7 @@ def export_dtmc_to_prism(model, file_path="dtmc.prism", initial_state=0):
        # Write PRISM DTMC model header
         f.write("dtmc\n\n")
         f.write("module dtmc_model\n\n")
-        f.write(f"    s : [0..{K - 1}] init {initial_state};\n\n")
+        f.write(f"    s : [0..{K}] init {initial_state};\n\n") # the last node is the state in theory that never be observed in the state, no transition will come in
 
         # Write transitions for each state
         for state in states:
@@ -103,5 +103,5 @@ def export_dtmc_to_prism(model, file_path="dtmc.prism", initial_state=0):
 
             if transition_list:
                 f.write(f"    [] s={i} -> {' + '.join(transition_list)};\n")
-
+        f.write(f"    [] s={K} -> 1.0: (s'={K});\n")
         f.write("\nendmodule\n")

@@ -1,8 +1,8 @@
 import os
 import json
-from .build_model import *
-from .embodied.abstraction import EmbodiedAbstraction
-from .predicate import *
+from ..build_model import *
+from .abstraction import EmbodiedAbstraction
+from ..predicate import *
 
 def embodied_build_model(dir, model_path, alpha=1.0):  
     
@@ -37,7 +37,7 @@ def embodied_build_model(dir, model_path, alpha=1.0):
                     if len(spec[PR])==1:
                         preds.append(AtomicPredicate(lhs=PR, op="==", rhs=spec[PR]))
                 else:
-                    preds.append(AtomicPredicate(lhs=PR, op="==", rhs=True))
+                    preds.append(AtomicPredicate(lhs=key, op="==", rhs=True))
             conjunction_pred = None
             for pred in preds:
                 abs_predicates.append(QuantifiedPredicate(quantifier="exist", predicate = pred))
@@ -46,7 +46,9 @@ def embodied_build_model(dir, model_path, alpha=1.0):
                 else:
                     conjunction_pred = BinaryPredicate(lhs=conjunction_pred, op="and", rhs=pred)
             abs_predicates.append(conjunction_pred)        
-                
+        print(specs)
+        print(abs_predicates)
+        print("====")
         abstraction = EmbodiedAbstraction(abs_predicates)
         model = build_model(logs, abstraction, alpha)
         if not os.path.exists(model_path):
@@ -62,6 +64,7 @@ for dir in log_dirs :
     model = MODEL_DIR + "merged_" + dir + "/"
     dir = LOG_DIR + dir + "/"
     try: 
+        print(model)
         embodied_build_model(dir, model) 
     except Exception as e:
         # raise e

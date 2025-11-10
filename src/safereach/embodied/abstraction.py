@@ -1,6 +1,7 @@
 
 import json
 import math
+import itertools
 from deepdiff import DeepDiff
 from ..abstraction import Abstraction, FINISH
 from typing import Any, Set, List, Dict
@@ -111,11 +112,20 @@ class EmbodiedAbstraction(Abstraction):
         # return object_states
    
     # this should return a mask for the 
-    # for predicate should be 
-    def filter(self, predicate) -> Set[str]:
-        pred_idx = {str(pred):i for i, pred in enumerate(self.predicate)}
-        for pre
-        pass
+    # proposition maps from predicate to its bool value (i.e., 1)
+    def filter(self, propositions) -> Set[str]:
+        pred_idxes = {str(pred):i for i, pred in enumerate(self.predicate)}
+        masks = {}
+        for (predicate, b_value) in propositions:
+            if not str(predicate) in pred_idxes:
+                raise Exception("Unknown predicate for the current abstraction")
+            pred_i = pred_idxes[str(predicate)]
+            masks[pred_i] = '1' if b_value else '0'
+            
+        states = [bitstr for bitstr in itertools.product('01', repeat=len(self.predicates)) \
+            if all(bitstr[idx] == masks[idx] for idx in masks)]
+        return set(states)
+        
    
     def valid_trans(self, state1: str, state2: str) -> bool:
         if state2 == FINISH:
