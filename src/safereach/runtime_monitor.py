@@ -21,6 +21,7 @@ def runtime_monitor(observation, dtmc_path, abs: Abstraction, cache={}):
     with open(dtmc_path, 'r') as f:
         model_txt = f.read()
 
+    # this is to cal P(\psi | s_i) where s_i is the current state 
     updated_model = re.sub(
         r's\s*:\s*\[\d+\.\.\d+\]\s+init\s+\d+;',
         lambda m: re.sub(r'init\s+\d+', f'init {current_state}', m.group(0)),

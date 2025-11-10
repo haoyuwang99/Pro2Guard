@@ -2,10 +2,9 @@ import os
 import json
 from .build_model import *
 from .embodied.abstraction import EmbodiedAbstraction
+from .predicate import *
 
-def embodied_build_model(dir, model_path, alpha=1.0): 
-    print(dir)
-    print(model_path)
+def embodied_build_model(dir, model_path, alpha=1.0):  
     
     if not os.path.exists( dir + "/spec"):
         # os.system(f"mv {dir} samples/embodied_no_final_state")
@@ -17,6 +16,7 @@ def embodied_build_model(dir, model_path, alpha=1.0):
         with open( dir + "/" + f) as f:
             obj = json.loads(f.read())
             log = [o["state"] for o in obj["s_trans"]]
+            log.append(FINISH)
             logs.append(log)
 
     specs = []
@@ -24,31 +24,35 @@ def embodied_build_model(dir, model_path, alpha=1.0):
         specs = json.loads(f.read()) 
     try: 
         # define abstraction level
-        object_types = set()
-        keys = set()
-        recepatacles = set()
+        OTY = "objectType"
+        PR = "parentReceptacles"
+        abs_predicates = []
         for spec in specs:
-            object_types.add(spec.get("objectType", ""))
-            for key in spec:
-                keys.add(key)
-            for recep in spec.get("parentReceptacles", []):
-                recepatacles.add(recep)
+            preds = []
+            for key in spec: 
+                if key == OTY:
+                    obj_pred = AtomicPredicate(lhs=OTY, op="==", rhs=spec[OTY])
+                    preds.append(obj_pred)
+                elif key == PR:
+                    if len(spec[PR])==1:
+                        preds.append(AtomicPredicate(lhs=PR, op="==", rhs=spec[PR]))
+                else:
+                    preds.append(AtomicPredicate(lhs=PR, op="==", rhs=True))
+            conjunction_pred = None
+            for pred in preds:
+                abs_predicates.append(QuantifiedPredicate(quantifier="exist", predicate = pred))
+                if conjunction_pred == None:
+                    conjunction_pred = pred
+                else:
+                    conjunction_pred = BinaryPredicate(lhs=conjunction_pred, op="and", rhs=pred)
+            abs_predicates.append(conjunction_pred)        
                 
-        keys.remove("objectType")
-        if "parentReceptacles" in keys:
-            keys.remove("parentReceptacles")
-            
-        abstraction = EmbodiedAbstraction(object_types, keys, recepatacles)
+        abstraction = EmbodiedAbstraction(abs_predicates)
         model = build_model(logs, abstraction, alpha)
         if not os.path.exists(model_path):
             os.mkdir(model_path)
-        print(model_path)
-        print(model["transition_counts"])
-        print("hHHHh")
-        
         store_model(model, model_path, abstraction)
     except Exception as e:
-        
         raise e
 
 LOG_DIR = '/Users/haoyu/SMU/AgentSpec/src/safereach/embodied/merged_sample/'

@@ -9,6 +9,7 @@ from typing import Any, Set, List, Dict, Mapping
 import networkx as nx
 import matplotlib.pyplot as plt
 from z3 import Bool, FP, FPVal, Float32, And, Or, Not, Solver, sat
+from ..predicate import *
 
 OP_MAP = {
     'and': And,
