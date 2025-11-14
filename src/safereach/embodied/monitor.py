@@ -1,10 +1,10 @@
 import os
 import json
-from .embodied.abstraction import EmbodiedAbstraction
-from .runtime_monitor import runtime_monitor
+from .abstraction import EmbodiedAbstraction
+from ..runtime_monitor import runtime_monitor
 from agentspec.rules.manual.embodied import rules as embodied_rules
 from agentspec.interpreter import RuleInterpreter, RuleState, Action
-from .embodied.eval import eval as eval_spec
+from .eval import eval as eval_spec
 
 # def enforcement()
     

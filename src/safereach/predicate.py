@@ -30,7 +30,10 @@ NEGATE_OP = {
     '<=': '>',
 }
 
-class AtomicPredicate(BaseModel):
+class StatePredicate(BaseModel):
+    pass
+
+class AtomicPredicate(StatePredicate):
     neg: bool = False
     lhs : str
     op : Literal['==', '!=', '>', '<', '>=', '<=']
@@ -41,11 +44,11 @@ class AtomicPredicate(BaseModel):
         return f"{n}({self.lhs} {self.op} {self.rhs})"
     
     def state_eval(self, observation):
-        op = OP_MAP[self.op] if self.neg else OP_MAP[NEGATE_OP[self.op]]
+        op = OP_MAP[self.op] if not self.neg else OP_MAP[NEGATE_OP[self.op]]
         return op(observation[self.lhs], self.rhs)
     
     
-class BinaryPredicate(BaseModel):
+class BinaryPredicate(StatePredicate):
     lhs: Any 
     op: Literal["and", "or"]
     rhs: Any
@@ -53,13 +56,18 @@ class BinaryPredicate(BaseModel):
     def __str__(self):
         return f"({self.lhs}) {self.op} ({self.rhs})"
     
-    def state_eval(self, observation):
-        return eval(self.lhs, observation) and eval(self.rhs, observation) if self.op == "and"\
-            else eval(self.lhs, observation) or eval(self.rhs, observation)
+    def state_eval(self, observation): 
+        # print(self.lhs)
+        # print(self.lhs.state_eval(observation))
+        # print(self.rhs)
+        # print(observation["parentReceptacles"])
+        # print(self.rhs.state_eval(observation))
+        return self.lhs.state_eval(observation) and self.rhs.state_eval( observation) if self.op == "and"\
+            else self.lhs.state_eval( observation) or self.rhs.state_eval(observation)
     
-class QuantifiedPredicate(BaseModel):
+class QuantifiedPredicate(StatePredicate):
     quantifier: Literal["exist", "all"]
-    predicate : Union[AtomicPredicate , BinaryPredicate ]
+    predicate : Union[AtomicPredicate , BinaryPredicate]
     
     def __str__(self):
         return f"{self.quantifier} {str(self.predicate)}"

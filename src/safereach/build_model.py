@@ -14,49 +14,55 @@ from .abstraction import Abstraction
 # from the observations we can abstract and get state 
 # transition
 def build_model(logs: List[List[Any]], abs:Abstraction, alpha=1.0):
-
     state_transitions = [ ]
     state_space = set()
+    # Restrict the state space to emprical observed ones.
     for log in logs:
         state_tran = []
-        for obs in log:
+        for obs in log: 
             state = abs.encode(obs) 
             state_tran.append(state)
-            state_space.add(state)
+            state_space.add(state) 
         state_transitions.append(state_tran)
     
-    K = len(state_space)
+    K = len(state_space) # extrace
     
     state_idx = abs.get_state_idx(state_space)
     state_interpret = abs.get_state_interpretation(state_space)
     # Initialize count matrix
     transition_counts = np.zeros((K, K), dtype=int)
     for state_tran in state_transitions:
-        prev_state = None
+        prev_states = []
         for state in state_tran: 
-            if prev_state is not None and prev_state in state_idx:
-                i, j = state_idx[prev_state], state_idx[state]
+            if len(prev_states)>0 and prev_states[-1] in state_idx:
+                i, j = state_idx[prev_states[-1]], state_idx[state]
                 transition_counts[i, j] += 1
-            prev_state = state
+            prev_states.append(state)
+        print([state_idx[state] for state in prev_states])
+    print(transition_counts)
 
-    # Apply Laplace smoothing over reachable transitions 
-    transition_probs: Dict[str, Dict[str, str]] = {}
-    for i, s_from in enumerate(list(state_space)):
+    # For simplicity, we use Laplace smoothing here.
+    transition_probs: Dict[int, Dict[int, str]] = {}
+    for s_from in list(state_space):
         numerators = []
         denom = 0
         reachable = []
+        i = state_idx[s_from]
+        for s_to in list(state_space):         
+            j = state_idx[s_to]
+            count = transition_counts[i, j]
+            numerators.append((j, count ))  # Laplace: +1
+            denom += count
+            reachable.append(j)
 
-        for j, s_to in enumerate(list(state_space)):    
-            if abs.valid_trans(s_from, s_to):
-                count = transition_counts[i, j]
-                numerators.append((s_to, count + alpha))  # Laplace: +1
-                denom += count + 1
-                reachable.append(j)
-
-        transition_probs[s_from] = {
-            s_to: str(Fraction(n).limit_denominator() / Fraction(denom))
-            for s_to, n in numerators
+        transition_probs[i] = {
+            j: f"{n}/{denom}"
+            for j, n in numerators if denom !=0 and n != 0
         }
+        if len(transition_probs[i].keys()) == 0:
+            transition_probs[i][i] = "1.0"
+            
+    print(transition_probs)
    
     return {
         "states": list(state_space),

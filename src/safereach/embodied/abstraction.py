@@ -22,48 +22,16 @@ keys_map = {
     "isPickedUp":"pickupable",
 }
 
-type_profile = {}
-with open("safereach/embodied/meta_data1.json") as f:
-    meta_data = json.loads(f.read())
-    type_profile = meta_data["type_profiles"]
-  
-
-# K = 5 
-# def in_bounds(i):
-#     return And(i >= 0, i < K)
-
-# def get_key_types(pred: Union[AtomicPredicate,BinaryPredicate]):
-#     if type(pred) == AtomicPredicate:
-#         return {pred.lhs: type(pred.rhs)}
-#     else :
-#         return get_key_types(pred.lhs) | get_key_types(pred.rhs)
-
-# type_map = {
-#     str: StringSort(),
-#     int: IntSort(),
-#     float: RealSort(),
-#     bool: BoolSort()
-# }
-
-# def construct_obj(preds: List[QuantifiedPredicate]):
-#     key_types = {}
-#     for pred in preds:
-#         keys = keys | get_key_types(pred)
-#     key2arr = {}
-#     for key in keys:
-#         ty = type(key_types[key])
-#         arr = Array(key, IntSort(),type_map[ty])
-#         key2arr[key] = arr
-        
-    # for pred in preds:
-    #     pass
-    # pass
+# type_profile = {}
+# with open("safereach/embodied/meta_data1.json") as f:
+#     meta_data = json.loads(f.read())
+#     type_profile = meta_data["type_profiles"]
      
 class EmbodiedAbstraction(Abstraction):
 
     # order matters
     def __init__(self, preds):
-        self.predicates = [pred for pred in preds if type(pred) == QuantifiedPredicate and pred.quantifier=="exist"]
+        self.predicates = preds # [pred for pred in preds if type(pred) == QuantifiedPredicate and pred.quantifier=="exist"]
         self.state_idx = None
         self.state_interpretation = None
      
@@ -85,10 +53,19 @@ class EmbodiedAbstraction(Abstraction):
     def encode(self, observations: List[Any]) -> str:
         if observations == FINISH:
             return FINISH
+        
+        for obs in observations:
+            obs["parentReceptacles"] = [pr[:pr.find("|")] for pr in obs["parentReceptacles"] ]\
+                if type(obs["parentReceptacles"])==list else obs["parentReceptacles"] 
         bitstr = ""
+        # print(observations)
         for pred in self.predicates:
             # assume all predicates are quantified.
-            bitstr = bitstr + '1' if pred.state_eval(observations) else '0'
+            # print(type(pred))
+            # print("??")
+            # print(pred)
+            bitstr = bitstr + ('1' if pred.state_eval(observations) else '0')
+            # print(bitstr)
         return bitstr
     
     def decode(self, bitstr: str) -> Any: 
@@ -206,7 +183,6 @@ class EmbodiedAbstraction(Abstraction):
         plt.title("State Transition Graph")
         plt.show()
 
-
 def process_type_profile():
 
     with open("safereach/embodied/meta_data.json") as f:
@@ -227,8 +203,7 @@ def process_type_profile():
             meta_data["type_profiles"] = type_profiles
             j.write(json.dumps(meta_data))
         
-process_type_profile()
-        
+# process_type_profile()
 
 def find_absorbing_states(G):
     absorbing_states = [node for node in G.nodes if G.out_degree(node) == 0]
