@@ -16,6 +16,7 @@ def embodied_build_model(dir, model_path, alpha=1.0):
         with open( dir + "/" + f) as f:
             obj = json.loads(f.read())
             log = [o["state"] for o in obj["s_trans"]]
+            log.append(FINISH)
             logs.append(log)
 
     specs = []
@@ -62,18 +63,16 @@ LOG_DIR = '/Users/haoyu/SMU/AgentSpec/src/safereach/embodied/merged_sample/'
 MODEL_DIR = 'safereach/dtmcs/embodied/'
 log_dirs = [f for f in os.listdir(LOG_DIR) if f.startswith('log_raw_t') and not f.endswith("jsonl")]
 for dir in log_dirs : 
-    if not dir.find("11") !=-1:
-        continue
+    # if not dir.find("11") !=-1:
+    #     continue
     model = MODEL_DIR + "merged_" + dir + "/"
     dir = LOG_DIR + dir + "/"
     try: 
         print(dir)
         embodied_build_model(dir, model) 
         # break
-    except Exception as e:
-        raise e
-        # continue 
-        
+    except Exception as e: 
+        # raise e
         if str(e).startswith("global"):
             raise e
         print(e)

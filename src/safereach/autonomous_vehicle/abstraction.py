@@ -69,12 +69,11 @@ VARIABLE_APIS = ['gear', 'engineOn', 'direction', 'manualIntervention', \
     'fog', 'trafficLightAheadArrowDirectioncolor', 'trafficLightAheadArrowDirectionblink', 'visibility']
     
     
-REACH = "reach_destination==1"
-COLLISION = "collision==1"
+REACH = AtomicPredicate(lhs="reach_destination", op="==", rhs=1)
+COLLISION = AtomicPredicate(lhs="collision", op="==", rhs=1)
 
 #predicate is a tuple (lhs, op, rhs)
 def eval_pred(observation, predicate):
-
     lvalue = eval_expr(observation, predicate[0])
     op = predicate[1]
     rvalue = eval_expr(observation, predicate[2])
@@ -96,8 +95,8 @@ def eval_bin_op(lvalue, op, rvalue):
     binop = STR_TO_BINOP[op]
     return binop(lvalue, rvalue)    
 
-def convert_to_bool_var(p):
-    return f"{p[0]}_{OP_STR_MAP(p[1])}_{p[2]}"
+def convert_to_bool_var(lhs, op, rhs): 
+    return f"{lhs}_{op}_{rhs}"
 
 scenario_law_map = {
     "s1": ['rule38_2','rule38_1', 'rule51_4', 'rule51_5'],
@@ -107,7 +106,6 @@ scenario_law_map = {
     "s6": ['rule51_4', 'rule38_1'],
     "s7": ['rule51_4', 'rule38_1'], 
     "s9": ['rule53', 'rule44', 'rule51_4', 'rule51_7'],
-    # we might want to refine the predicate can be the indicator for collision, and finish journey
     "s3": ['rule38_1', 'rule44', 'rule51_4', 'rule51_7', "collision"],
     "s8": ['rule51_7','rule38_1', 'rule51_4', 'collision'],
     "s10": ['rule51_7'],
@@ -128,7 +126,6 @@ class AVAbstraction(Abstraction):
     #   )\
     #  )'
     def __init__(self, rule ):
-
         if not (rule in traffic_rules):
             raise Exception(f"unsupported rule {rule}")
         collector = parse_law(traffic_rules[rule])
@@ -137,19 +134,15 @@ class AVAbstraction(Abstraction):
         self.rule = rule
 
         self.predicates = sorted(list(set(self.predicates)))
-
-        self.state_space=sorted(list(self.enumerate_possible_states()))
-
-        self.state_idx = None
-        self.state_interpretation = None
-
+        # We asumme the rhs of the AV predicate is always float
+        self.predicates = [AtomicPredicate(lhs=p[0], op=p[1], rhs=float(p[2]) ) for p in self.predicates]
+        
     # for autonomous vehicle runtime monitoring, we need to add tick variable
     # collision | reach | predicates 
     def encode(self, observation):
-        
         bitstr = ""
-        collision = eval_pred(observation, COLLISION) 
-        reach = eval_pred(observation, REACH)
+        collision = COLLISION.state_eval(observation) 
+        reach = REACH.state_eval(observation)
         
         # if collision/reach/law violation happens, we do not care about predicates.
         if collision :
@@ -162,13 +155,9 @@ class AVAbstraction(Abstraction):
         # if no collision, evaluate the following
         # predicates
         for predicate in self.predicates: 
-            pvalue = eval_pred(observation, predicate)
+            print(predicate)
+            pvalue = predicate.state_eval(observation)
             bitstr = bitstr + "1" if pvalue else bitstr + "0"
-
-        if not bitstr in self.state_space:
-            print(bitstr)
-            print(self.state_space)
-            raise Exception("unvalid state")
             
         return bitstr
     
@@ -203,9 +192,7 @@ class AVAbstraction(Abstraction):
         enums = ['00' + ''.join(bits)  for bits in s_space]
         enums.append("10" + "0" * (len(self.predicates)))
         enums.append("01" + "0" * (len(self.predicates))) 
-        # We shall do this once and check for validity of each state.
         return set(enums)
-        # for a in self.predicates:
 
     # first bit: collision, last bit: reach
     def valid_trans(self, state1: str, state2: str) -> bool:
@@ -219,9 +206,8 @@ class AVAbstraction(Abstraction):
             return False
         return True
 
-    def get_state_idx(self) -> Mapping[str, int]:  
-        if self.state_idx == None:
-            self.state_idx = {s:i for i, s in enumerate(self.state_space)}
+    def get_state_idx(self, states) -> Mapping[str, int]:  
+        self.state_idx = {s:i for i, s in enumerate(states)}
         return self.state_idx
 
     def filter(self, spec = (COLLISION,True)) -> List[str]:
@@ -244,18 +230,25 @@ class AVAbstraction(Abstraction):
         #     raise Exception(f"Unexpected Spec: {spec}")
         return [self.state_idx[s] for s in res]   
     
-    def get_state_interpretation(self) -> Mapping[str, Mapping[str, bool]]: #Mapping: predicate str -> value
-        if self.state_interpretation == None:
-            self.state_interpretation = {s: list(zip([convert_to_bool_var(p) for p in self.predicates],\
-                [ True if bit == '1' else False for bit in s])) for s in self.state_space}
+    def get_state_interpretation(self, states) -> Mapping[str, Mapping[str, bool]]: #Mapping: predicate str -> value
 
-        return self.state_interpretation
+        predicates = [convert_to_bool_var(p.lhs, p.op, p.rhs) for p in [COLLISION, REACH] + self.predicates]
+
+        state_interpretation = {}
+
+        for s in states:
+            bool_vals = [ True if bit == '1' else False for bit in s]
+            s_interp = {}
+            for pred, val in zip(predicates, bool_vals):
+                # print(self.sta)
+                s_interp[pred] = val
+            state_interpretation[s] = s_interp    
+            
+        return state_interpretation
     
     def to_json(self) -> str:
         obj = {
-            "predicates":  self.predicates,
-            "reach" : REACH, 
-            "collision": COLLISION,
+            "predicates":  [p.model_dump_json() for p in self.predicates],
             "rule":self.rule
         }
         return json.dumps(obj)

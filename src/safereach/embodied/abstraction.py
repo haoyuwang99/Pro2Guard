@@ -103,18 +103,17 @@ class EmbodiedAbstraction(Abstraction):
             if all(bitstr[idx] == masks[idx] for idx in masks)]
         return set(states)
         
-   
     def valid_trans(self, state1: str, state2: str) -> bool:
-        if state2 == FINISH:
-            return True
         if state1 == FINISH:
             return False
+
+        return True
+        # TODO- Engineering the correctness of transition
         observation1 = self.decode(state1)
         observation2 = self.decode(state2)
         # observations are list of object state
         
         diff = DeepDiff(observation1, observation2, ignore_order=True)
-        
         
         # we assume transitions are atomic, (i.e., the )
         if len(diff.keys()) > 1:
@@ -144,7 +143,6 @@ class EmbodiedAbstraction(Abstraction):
         if "['parentReceptacles'][0]" in diff["values_changed"]: 
             return False
          
-        
         # some property are not recoverable
         if any(f"['{x}']" in diff["values_changed"] and \
                 diff["values_changed"][f"['{x}']"]["old_value"] and \
@@ -152,9 +150,7 @@ class EmbodiedAbstraction(Abstraction):
                 for x in ["isBroken", "isSliced", "isCooked"]
                 ): 
             return False
-        
         return True
-            
         
     def show_reachability_graph(self):
         state_space = list(self.enumerate_possible_states())

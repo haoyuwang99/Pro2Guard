@@ -231,8 +231,6 @@ def load_abstraction(abstraction_desc_path):
 
 MODEL_BASE = "safereach/embodied/dtmcs"
 for task in os.listdir(TASK_DIR):
-
-    # print(i)
     if not task.startswith("merged"):
         continue
     
@@ -244,45 +242,25 @@ for task in os.listdir(TASK_DIR):
     abs_path = f"{MODEL_DIR}/abstraction.json"
     model_path = f"{MODEL_DIR}/dtmc.prism"
     
-    
-    # if i in [4, 8] :
-    #     continue
     print(i)
     print(task)
-    # continue
+    
     with open(f"{TASK_DIR}{task}") as f:
 
-        # print(i)
         if os.path.exists(f"safereach/embodied/merged_test_010_reflect/log_raw_t{i}.jsonl"):
-            continue
-        # print(f)
-        # continue
-        # continue
-        # if i in [4, 8, 11, 26, 31, 46,66, 67, 70, 71, 85,93, 130]:
-        #     continue
-        # if i in [ 3, 4, 8, 9, 10, 11, 17, 18,\
-        #     20, 26, 31, 37, 38, 39, 40, 46, 56, 57,\
-        #         59, 66, 67, 70, 71,74,75, 77,78,79, 84, 85, 93,122, 130, 154]:
-        #     continue
-        # print(i)
-        # print(task)
-        # continue
+            continue 
         
         obj = json.loads(f.read()) 
         abs =  load_abstraction(abs_path)
         unsafe_spec = obj["unsafe_state"]
         unsafe_states = abs.filter(unsafe_spec)
         unsafe_states = [abs.get_state_idx()[state] for state in list(unsafe_states)]
-        cache = {}
-        # print(unsafe_states)
-        # continue
+        cache = {} 
   
         for j in range(0, 5):
             if i ==66 and j < 4:
                 continue
             try:
-                # if(obj["instruction"]) in runned:
-                #     continue
                 t = time.time()
                 res = run_agent(obj["scene_name"], 
                                 obj["merged_inst"],
@@ -292,7 +270,6 @@ for task in os.listdir(TASK_DIR):
                                 task_obj = obj,
                                 cache = cache,
                                 threshold = 0.1) 
-                # exit(0)
                 t = time.time() - t
                 times = times + 1
                 total = total + t

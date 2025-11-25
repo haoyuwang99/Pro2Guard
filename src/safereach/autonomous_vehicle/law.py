@@ -216,11 +216,11 @@ def prepare_for_rule53():
     return traffic_rule
 
 class PredicateCollector(StlAstVisitor):
+    
     def __init__(self):
         self.predicates = []
         self.implies = []
 
-        
     def visit(self, node, *args, **kwargs):
         if isinstance(node, Predicate):
             self.visit_predicate(node, args, kwargs) 
@@ -230,6 +230,7 @@ class PredicateCollector(StlAstVisitor):
         super().visit(node, *args, **kwargs)
         
     def visit_predicate(self, node, *args, **kwargs):
+        
         op = str(node.operator)
         pre_str = node.name 
         lhs = pre_str[1:pre_str.find(op)-1]
@@ -337,19 +338,14 @@ def parse_law(law_str):
     
     for item in VARIABLE_APIS:
         spec.declare_var(item, 'float')
-    spec.declare_var("t1", "int")
-    spec.declare_var("t2", "int")
-    # also need to know what is the precondition for t1 and t2
     
     spec.spec = law_str
     spec.parse()
-    
     ast = spec.ast.specs[0]
-
     collector = PredicateCollector()
-    print(type(ast))
-    
+    collector.visit(ast)
     return collector
 
 for r in traffic_rules:
     parse_law(traffic_rules[r])
+

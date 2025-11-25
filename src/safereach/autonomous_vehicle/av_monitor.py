@@ -1,54 +1,102 @@
 import os
 import json 
 import pickle
-from .autonomous_vehicle.abstraction import AVAbstraction, REACH_PREDICATE, COLLISION_PREDICATE, LAW_VIOLATION_PREDICATE, scenario_law_map
-from .runtime_monitor import runtime_monitor
-from .autonomous_vehicle.TracePreprocess import raw_to_lawbreaker_API
-from .autonomous_vehicle.law import *
+from .abstraction import convert_to_bool_var,AVAbstraction, REACH, COLLISION, scenario_law_map
+from ..runtime_monitor import runtime_monitor
+from .TracePreprocess import raw_to_lawbreaker_API
+from .law import *
+from ..predicate import *
  
 def load_abstraction(abstraction_desc_path):
     with open(abstraction_desc_path) as f:
         obj = json.load(f)
         rule = obj["rule"]
-
     return AVAbstraction(rule)
 
-
+BOUNDED_RESPONSE = "bound"
+LAW_VIOLATION_PREDICATE = "law"
 LOG_BASE = "/Users/haoyu/SMU/AgentSpec/src/safereach/autonomous_vehicle/tests/"
 DTMC_BASE = "safereach/dtmcs/"
 
 unsafe_predicates = {
     "s1": LAW_VIOLATION_PREDICATE,
     "s2": LAW_VIOLATION_PREDICATE,
-    "s3": COLLISION_PREDICATE,
+    "s3": COLLISION,
     "s4": LAW_VIOLATION_PREDICATE,
     "s5": LAW_VIOLATION_PREDICATE,
     "s6": LAW_VIOLATION_PREDICATE,
     "s7": LAW_VIOLATION_PREDICATE,
-    "s8": COLLISION_PREDICATE,
+    "s8": COLLISION,
     "s9": LAW_VIOLATION_PREDICATE,
     "s10": LAW_VIOLATION_PREDICATE,
 }
+
 # s6 and s7 violates law at the first timeframe??
 
 # abs = load_abstraction(abs_path)
 # unsafe_states = abs.filter()
 # unsafe_states = [abs.get_state_idx()[state] for state in list(unsafe_states)]
 
-for scenario in os.listdir(LOG_BASE):
+#interp: propositions in the form of {(lhs, op, rhs): bool_val ...}
+# it returns the value of the predicate.
+def truth_table(interp, pred):
+    if type(pred)==AtomicPredicate:
+        
+        pred_name = convert_to_bool_var(pred.lhs, pred.op, pred.rhs)
+        pred_value = interp[pred_name]
+        return pred_value
+    elif type(pred) == BinaryPredicate:
+        if pred.op == "and":
+            return truth_table(interp, pred.lhs) and truth_table(interp, pred.rhs) 
+        else:
+            return truth_table(interp, pred.lhs) or truth_table(interp, pred.rhs) 
+    else:
+        raise Exception("Unsupported type")
+    
+# this returns the states that satisfy the pred
+def filter(state_interp, pred):
 
+    states = []
+    for s in state_interp:
+        if truth_table(state_interp[s], pred):
+            states.append(s)
+    return states
+
+for scenario in os.listdir(LOG_BASE):
     LOGDIR = f"{LOG_BASE}{scenario}/"
     if scenario in ["s6","s7"]:
         continue
     rule = scenario_law_map[scenario][0]
     abs = AVAbstraction(rule)
     model_path = f"{DTMC_BASE}{scenario}/dtmc.prism"
+    model_des = f"{DTMC_BASE}{scenario}/model.json"
+    with open(model_des) as f:
+        obj = json.loads(f.read())
+        state_idx = obj["state_index"]
+        state_interp = obj["state_interpret"]
+        unobserved_state = len(state_idx.keys())
+        
     cache = {}
     
     predicate = unsafe_predicates[scenario]
-    unsafe_states = abs.filter(predicate)
-    unsafe_states = [abs.get_state_idx()[state] for state in list(unsafe_states)]
-    
+    if predicate == COLLISION: 
+        continue
+        print(LOGDIR)
+        # print(COLLISION)
+        unsafe_states = filter(state_interp, COLLISION )
+        unsafe_states = [state_idx[state] for state in list(unsafe_states)]
+        
+        print(unsafe_states)
+    else :
+        # 1. parse varphi_s, varphi_t and K from the rule
+        components = [] #(predicate s, predicate t, K)
+        for imply in abs.implies:
+            pre = convert(imply[0])
+            print(pre)
+            
+        print(rule)
+        
+    continue
     violated_and_detected = 0
     ahead = 0
     for log in os.listdir(LOGDIR):
