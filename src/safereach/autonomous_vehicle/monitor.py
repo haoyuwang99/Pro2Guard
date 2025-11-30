@@ -2,13 +2,12 @@ import rtamt
 import sys
 import os
 import numpy as np
-from .TracePreprocess import Trace
+from TracePreprocess import Trace
 import json
 import copy 
 from antlr4 import *
 from antlr4.InputStream import InputStream
 from shapely.geometry import Polygon, Point 
-from .law import parse_law, traffic_rules, eval_node
 
 inf_value = 1000
 
@@ -488,43 +487,6 @@ class Monitor:
             del spec
         return result
 
-# if multiple clock variable has dependencies, make sure right depend on left
-def add_timer_preprocess(traj, rule, clock_vars):
-    law_str = traffic_rules[rule]
-    implies = parse_law(law_str).implies
-    
-    lexprs = [None] * len(clock_vars)
-    for lexpr, rexpr in implies :
-        print(lexpr.name)
-        print(rexpr.name)
-        for i in range(len(clock_vars)):
-            clock = clock_vars[i]
-            if rexpr.name.find(clock) >=0:
-                lexprs[i] = lexpr
-    
-    for i in range(len(clock_vars)):
-        lexpr = lexprs[i]
-        print(lexpr)
-        
-        if lexpr == None:
-            continue 
-        last_imply_t = -1
-        for j in range(len(traj)):
-            # print(type(observation))
-            # print("ahasjkadjh")
-            # print("eval:", lexpr.name)
-            hold = eval_node(traj, j, lexpr)
-
-            if hold :
-                if i%100==0:
-                    print(j)
-                last_imply_t = 0
-            else :
-                if last_imply_t >= 0:
-                    last_imply_t = last_imply_t + 1
-            traj[j][clock_vars[i]]=last_imply_t
-    return traj
-    # print(last_imply_t)
             
 # LOG_DIR = "/Users/haoyu/SMU/Pro2Guard/src/safereach/logs/s10_pickles/"
 # for f in os.listdir(LOG_DIR):
@@ -540,102 +502,86 @@ def add_timer_preprocess(traj, rule, clock_vars):
         
 # exit(0)
 
-# if __name__ == "__main__": 
-#     import os
+if __name__ == "__main__": 
+    import os
     
-#     from AssertionExtraction import SingleAssertion, ExtractAll
-#     from TracePreprocess import raw_to_lawbreaker_API
-#     import pickle
-#     input_file = 'law.txt'
-#     weather = {'rain' : 0.0,  'snow': 0.0, 'fog' : 0.0}
-#     isGroundTruth = True
-#     extracted_script = ExtractAll(input_file,isGroundTruth)
-#     specification = extracted_script.Get_Specifications()[0]
-#     # print(specification.dis_variables)
-#     # print(specification.dis_statement)
-#     # extracted_data = ExtractAll('law.txt', True)
-#     # output_file = 'Law38_0_2_record_1.00000.20250618131620.record.pickle'
+    from AssertionExtraction import SingleAssertion, ExtractAll
+    from TracePreprocess import raw_to_lawbreaker_API
+    import pickle
+    input_file = 'law.txt'
+    weather = {'rain' : 0.0,  'snow': 0.0, 'fog' : 0.0}
+    isGroundTruth = True
+    extracted_script = ExtractAll(input_file,isGroundTruth)
+    specification = extracted_script.Get_Specifications()[0]
+    # print(specification.dis_variables)
+    # print(specification.dis_statement)
+    # extracted_data = ExtractAll('law.txt', True)
+    # output_file = 'Law38_0_2_record_1.00000.20250618131620.record.pickle'
     
     
-#     violated_laws = {}
+    violated_laws = {}
     
-#     # SAMPLE_DIR = "tests/"
-#     # for scenario in os.listdir(SAMPLE_DIR):
-#     dir = "s10_pickles"
-#     # for filename in os.listdir(f"{SAMPLE_DIR}{scenario}"):
-#     for filename in os.listdir(dir):
+    SAMPLE_DIR = "/Users/haoyu/SMU/AgentSpec/src/safereach/autonomous_vehicle/tests/s8/"
+    # for scenario in os.listdir(SAMPLE_DIR):
+    # dir = "s10_pickles"
+    # for filename in os.listdir(f"{SAMPLE_DIR}{scenario}"):
+    for filename in os.listdir(SAMPLE_DIR):
         
-#         if not filename.endswith("pickle"):
-#             continue
-#         # path = f"{SAMPLE_DIR}{scenario}/{filename}"
-#         path = f"{dir}/{filename}"
+        if not filename.endswith("pickle"):
+            continue
+        # path = f"{SAMPLE_DIR}{scenario}/{filename}"
+        path = f"{SAMPLE_DIR}/{filename}"
         
-#         with open(path, 'rb') as f:
+        with open(path, 'rb') as f:
             
-#             print(path + ".json")
-#             if not os.path.exists(f"{path}.json"):
-#                 continue
+            # print(path + "_c.json")
+            if not os.path.exists(f"{path}.json"):
+                continue
             
 
-#             msg = pickle.load(f)
-#             trace = msg["trace"]
-#             monitor = Monitor(msg, specification, weather)
-#             score = monitor.continuous_monitor_for_muti_traffic_rules()
-#             # print(score)
-#             # for rule in score:
+            msg = pickle.load(f)
+            trace = msg["trace"]
+            monitor = Monitor(msg, specification, weather)
+            score = monitor.continuous_monitor_for_muti_traffic_rules()
+            # print(score)
+            # for rule in score:
                 
-#             #     if not rule in violated_laws:
-#             #         violated_laws[rule] = False
-#             #     if score[rule] <=0:
-#             #         violated_laws[rule] = True
-#             # continue
-#             time_seq = sorted(list(trace.keys()))
-#             fit_sccores = {}
+            #     if not rule in violated_laws:
+            #         violated_laws[rule] = False
+            #     if score[rule] <=0:
+            #         violated_laws[rule] = True
+            # continue
+            time_seq = sorted(list(trace.keys()))
+            fit_sccores = {}
             
-#             #calculate fit score every 100 frames
-#             for i in range(1, len(time_seq)):
-#                 cur_t = time_seq[i]
-#                 ts = time_seq[:i]
-#                 trace_prefix = {}
-#                 if len(ts) > 100:
-#                     ts = ts[len(ts)-100:]
-#                 for t in ts:
-#                     trace_prefix[t] = trace[t]
-#                 # print(len(trace_prefix.keys()))
-#                 msg_prefix = {
-#                     "groundTruthPerception" : msg["groundTruthPerception"],
-#                     "trace": trace_prefix
-#                 }
-#                 # print(msg_prefix)
-#                 monitor = Monitor(msg_prefix, specification, weather)
-#                 # print(msg_prefix)
-#                 score = monitor.continuous_monitor_for_muti_traffic_rules()
-#                 # print(score)
-#                 fit_sccores[cur_t] = score
-#                 if i%100 ==0:
-#                     print(len(ts))
-#                     print(i)
-#                 # if i ==3:
-#                 #     break
-#         # break
-#             # time_seq = sorted(list(trace.keys()))
-#             initial_timestamp = time_seq[0]
-#             trajectory = []
-#             for key in fit_sccores:
-#                 log = raw_to_lawbreaker_API(trace[key], initial_timestamp)
-#                 log["fit_score"] = fit_sccores[key]
-#                 trajectory.append(log)
+            #calculate fit score every 100 frames
+            for i in range(1, len(time_seq)):
+                cur_t = time_seq[i]
+                ts = time_seq[:i]
+            #     trace_prefix = {}
+            #     for t in ts:
+            #         trace_prefix[t] = trace[t]
+            #     # print(len(trace_prefix.keys()))
+            #     msg_prefix = {
+            #         "groundTruthPerception" : msg["groundTruthPerception"],
+            #         "trace": trace_prefix
+            #     }
 
+            #     monitor = Monitor(msg_prefix, specification, weather)
+            #     score = monitor.continuous_monitor_for_muti_traffic_rules()
+                fit_sccores[cur_t] = {}
+            #     if i%100 ==0:
+            #         print(len(ts))
+            #         print(i)
 
-#             log = {"trajectory": trajectory}
-#             with open(f"{path}.json", 'w') as w:
-#                 w.write(json.dumps(log))
+            initial_timestamp = time_seq[0]
+            trajectory = []
+            for key in fit_sccores:
+                log = raw_to_lawbreaker_API(trace[key], initial_timestamp)
+                log["fit_score"] = fit_sccores[key]
+                trajectory.append(log)
 
-  
-
-# print(violated_laws)
-# violated = []
-# for rule in violated_laws:
-#     if violated_laws[rule]:
-#         violated.append(rule)
-# print(violated)
+            log = {"trajectory": trajectory}
+            print(path)
+            with open(f"{path}_c.json", 'w') as w:
+                w.write(json.dumps(log))

@@ -8,3 +8,5 @@ langchain_experimental
 numpy
 shapely
 rtamt
+z3-solver
+stormpy

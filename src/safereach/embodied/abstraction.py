@@ -7,7 +7,7 @@ from ..abstraction import Abstraction, FINISH
 from typing import Any, Set, List, Dict
 import networkx as nx
 import matplotlib.pyplot as plt
-from ..predicate import *
+# from ..predicate import *
 from z3 import *
 
 keys_map = {

@@ -320,6 +320,7 @@ def raw_to_lawbreaker_API(trace_step, initial_timestamp):
     lawbreaker_step['isTrafficJam'] = 1 if ego['isTrafficJam'] else 0
     lawbreaker_step['reach_destination'] = 1 if ego["reach_destinaton"] else 0
     lawbreaker_step['collision'] = 1 if truth["minDistToEgo"] <= 0 else 0
+    lawbreaker_step["mindisttoego"] = truth["minDistToEgo"]
 
     max_dis = 1000
     min_dis = 0

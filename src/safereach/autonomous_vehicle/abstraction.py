@@ -155,7 +155,7 @@ class AVAbstraction(Abstraction):
         # if no collision, evaluate the following
         # predicates
         for predicate in self.predicates: 
-            print(predicate)
+            # print(predicate)
             pvalue = predicate.state_eval(observation)
             bitstr = bitstr + "1" if pvalue else bitstr + "0"
             

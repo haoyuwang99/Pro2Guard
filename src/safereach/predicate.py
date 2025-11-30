@@ -5,6 +5,7 @@ from rtamt.syntax.node.ltl.neg import Neg
 from rtamt.syntax.node.ltl.predicate import Predicate
 from rtamt.syntax.node.ltl.conjunction import Conjunction
 from rtamt.syntax.node.ltl.disjunction import Disjunction
+from rtamt.syntax.node.stl.timed_eventually import TimedEventually
 # We assume this predicate would evaluate on the observations {k:v} using observation[lhs] op rhs
 
 
@@ -100,7 +101,7 @@ def convert(node):
     
     # Negation case (if your AST has it)
     if isinstance(node, Neg):
-        inner = convert(node.child)
+        inner = convert(node.children[0])
         if isinstance(inner, AtomicPredicate):
             # Flip atomic neg flag
             return AtomicPredicate(
@@ -116,8 +117,7 @@ def convert(node):
 
     # Conjunction → BinaryPredicate(lhs, "and", rhs)
     if isinstance(node, Conjunction):
-        print(node.name)
-        print("Conjunction")
+
         return BinaryPredicate(
             lhs = convert(node.children[0]),
             op  = "and",
@@ -126,8 +126,7 @@ def convert(node):
     
     # Disjunction → BinaryPredicate(lhs, "or", rhs)
     if isinstance(node, Disjunction):
-        print(node.name)
-        print("Disjunction")
+
         return BinaryPredicate(
             lhs = convert(node.children[0]),
             op  = "or",
@@ -135,3 +134,10 @@ def convert(node):
         )
 
     raise TypeError(f"Unknown node type: {type(node)}")
+
+def parse_K_eventually(node):
+    if isinstance(node, TimedEventually):
+        inner = node.children[0]
+        K = node.end
+        return (inner, K)
+    raise TypeError("upsupported type: ", type(node))

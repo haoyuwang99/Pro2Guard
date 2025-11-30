@@ -66,7 +66,7 @@ def build_model(logs: List[List[Any]], abs:Abstraction, alpha=1.0):
 
         # print(s_from, ": ", denom)
         transition_probs[i] = {
-            j: f"{n+alpha}/{denom}"
+            j: f"{n+(alpha if abs.valid_trans(s_from, s_to) else 0)}/{denom}"
             for j, n in numerators if denom !=0 
         }
         if len(transition_probs[i].keys()) == 0:

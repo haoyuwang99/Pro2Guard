@@ -1,0 +1,37 @@
+dtmc
+
+module plant
+
+s : [0..2] init 0;
+  [tick] s=0 -> 1.0 : (s'=1);
+  [tick] s=1 -> 0.4 : (s'=1) + 0.6 : (s'=2);
+  [tick] s=2 -> 1.0 : (s'=2);
+endmodule
+
+const int K = 2;
+formula alpha = (s=0); // α holds at state 0 
+formula beta = (s=2); // β holds at state 2
+
+module mon_R1
+
+armed : bool    init false;     // whether β is expected soon
+t     : [0..K]  init 0;         // remaining steps
+viol  : bool    init false;     // violation flag (absorbing)
+
+  // α holds → (re)start the countdown
+  [tick] !viol & alpha -> (armed'=true) & (t'=K);
+
+  // β satisfies the obligation
+  [tick] !viol & armed & beta -> (armed'=false) & (t'=0);
+
+  // Waiting: decrement the countdown
+  [tick] !viol & armed & !beta & (t>1) -> (t'=t-1);
+
+  // Deadline passed → violation
+  [tick] !viol & armed & !beta & (t=1) -> (viol'=true);
+
+  // Absorb when violated
+  [tick] viol -> (viol'=true);
+endmodule
+
+//P=? [ G viol=false]

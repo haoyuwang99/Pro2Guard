@@ -116,12 +116,7 @@ class Abstraction(ABC):
 
     # Define valid state transitions
     @abstractmethod
-    def can_reach(self, state1: str, state2: str) -> bool:
-        pass
-
-    # Return possible state bitstrings satisfying a spec (condition on observation)
-    @abstractmethod
-    def filter(self, spec: Any) -> Set[str]:
+    def valid_trans(self, state1: str, state2: str) -> bool:
         pass
 
     # Enumerate all valid states
