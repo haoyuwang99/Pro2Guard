@@ -95,9 +95,6 @@ def eval_bin_op(lvalue, op, rvalue):
     binop = STR_TO_BINOP[op]
     return binop(lvalue, rvalue)    
 
-def convert_to_bool_var(lhs, op, rhs): 
-    return f"{lhs}_{op}_{rhs}"
-
 scenario_law_map = {
     "s1": ['rule38_2','rule38_1', 'rule51_4', 'rule51_5'],
     "s2": ['rule51_5','rule44'],
@@ -240,7 +237,7 @@ class AVAbstraction(Abstraction):
             bool_vals = [ True if bit == '1' else False for bit in s]
             s_interp = {}
             for pred, val in zip(predicates, bool_vals):
-                # print(self.sta)
+                # print(pred)
                 s_interp[pred] = val
             state_interpretation[s] = s_interp    
             

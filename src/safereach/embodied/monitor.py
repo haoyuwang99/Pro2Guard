@@ -5,17 +5,27 @@ from ..runtime_monitor import state_runtime_monitor
 from agentspec.rules.manual.embodied import rules as embodied_rules
 from agentspec.interpreter import RuleInterpreter, RuleState, Action
 from .eval import eval as eval_spec
+from .util import *
+from ..predicate import filter
 
-# def enforcement()
+def from_json_to_pred(obj):
+    if "quantifier" in obj:
+        return QuantifiedPredicate(quantifier=obj['quantifier'], predicate= from_json_to_pred(obj["predicate"]))
+    elif "neg" in obj:
+        return AtomicPredicate(neg=obj["neg"], lhs = obj["lhs"], op = obj["op"], rhs= obj["rhs"])
+    else :
+        return BinaryPredicate(lhs=from_json_to_pred(obj["lhs"]), op = obj["op"], rhs=from_json_to_pred(obj["rhs"]))
     
 def load_abstraction(abstraction_desc_path):
     
     if not os.path.exists(abstraction_desc_path):
         raise Exception(f"Invalid model director: {abstraction_desc_path}")
-    abs = None
+
     with open(abstraction_desc_path) as f:
-        obj = json.loads(f.read())
-        return EmbodiedAbstraction(obj["objectTypes"], obj["keys"], obj["parentReceptacles"])
+        pred_objs = json.loads(f.read())
+        predicates = [from_json_to_pred(obj) for obj in pred_objs]
+            
+        return EmbodiedAbstraction(predicates)
 
 def eval_reflect(): 
     complete_cnt = 0
@@ -26,7 +36,6 @@ def eval_reflect():
     TASK_DIR = "../benchmarks/SafeAgentBench/dataset/merged_tasks"
     LOG_BASE = "safereach/embodied/merged_test_010_reflect"
     MODEL_BASE = "safereach/embodied/dtmcs"
-    
     
     for f in os.listdir(LOG_BASE):
         if f.endswith("jsonl") or f.endswith("py"):
@@ -89,13 +98,14 @@ def eval_stop():
     total_cnt = 0
 
     steps_ahead = 0
-    TASK_DIR = "~/SMU/AgentSpec/benchmarks/SafeAgentBench/dataset/merged_tasks"
-    LOG_BASE = "~/SMU/AgentSpec/src/safereach/embodied/merged_test"
+    TASK_DIR = "/Users/haoyu/SMU/AgentSpec/benchmarks/SafeAgentBench/dataset/merged_tasks"
+    LOG_BASE = "/Users/haoyu/SMU/AgentSpec/src/safereach/embodied/merged_test"
     MODEL_BASE = "safereach/dtmcs/embodied"
     i = 0
     for f in os.listdir(LOG_BASE):
-        if f.endswith("jsonl") or f.endswith("py"):
+        if f.endswith("jsonl") or f.endswith("py") or f==".DS_Store":
             continue
+        
         id = f[f.find("_t")+2:]
         
         task_path = f"{TASK_DIR}/merged_task_{id}.json"
@@ -106,20 +116,29 @@ def eval_stop():
             task = json.loads(t.read())
             
         unsafe_spec = task["unsafe_state"]
+        unsafe_preds = [] # this is a list of predicate that must all evaluated to be true.
+        for spec in unsafe_spec:
+            unsafe_preds.append(get_predicates_from(spec)[-1])
+            
+        pred = unsafe_preds[0]
+        for p in unsafe_preds[1:]:
+            pred = BinaryPredicate(lhs = pred, op = "and", rhs=p)
+        
         goal_spec = task["final_state"]
-        # print(task_path)
+
+        print(task_path)
         # print(unsafe_spec)
         # print(goal_spec)
-        # continue
         MODEL_DIR = f"{MODEL_BASE}/merged_{f}"
         LOG_DIR = f"{LOG_BASE}/{f}"
-        print(MODEL_DIR)
+        # print(MODEL_DIR)
         if not os.path.exists(MODEL_DIR):
             continue 
         
         task_path = f"{TASK_DIR}/merged"
         abs_path = f"{MODEL_DIR}/abstraction.json"
         model_path = f"{MODEL_DIR}/dtmc.prism"
+        
         if not os.path.exists(abs_path):
             continue
         if not os.path.exists(model_path):
@@ -128,16 +147,27 @@ def eval_stop():
         logs = [ l for l in os.listdir(f"{LOG_BASE}/{f}") if l.endswith(".json")]
         if len(logs)== 0:
             continue
-        # print(f)
     
         abs = load_abstraction(abs_path)
+        
+        with open(f"{MODEL_BASE}/merged_{f}/model.json") as f:
+            obj = json.loads(f.read()) 
+            state_interp= obj["state_interpret"]
+
         # print(abs.object_types)
         # print(abs.keys)
         # print(abs.parentReceptacles)
-        # print(spec)
-        unsafe_states = abs.filter(unsafe_spec)
-        unsafe_states = [abs.get_state_idx()[state] for state in list(unsafe_states)]
-        print(unsafe_states)
+        # print(abs.predicates)
+        # print(unsafe_pred)
+        # print(state_interp)
+        print("=====")
+        # print(state_interp)
+        # print(pred)
+        unsafe_states = filter(state_interp, pred)
+        print(len(unsafe_states))
+        continue
+        # unsafe_states = [state for state in list(unsafe_states)]
+        
     
         if len(unsafe_states) == 0:
             # print(f)
@@ -254,8 +284,75 @@ def eval_stop():
                 
         # if total_cnt > 50:
         #     break
-    print(f"before {total_cnt}:")
-    print(unsafe_cnt*1.0/total_cnt)
-    print(complete_cnt*1.0/total_cnt)
+    # print(f"before {total_cnt}:")
+    # print(unsafe_cnt*1.0/total_cnt)
+    # print(complete_cnt*1.0/total_cnt)
 
-eval_stop()
+def eval_original():
+    LOG_BASE = "/Users/haoyu/SMU/AgentSpec/src/safereach/embodied/merged_test"
+    
+    TASK_DIR = "../benchmarks/SafeAgentBench/dataset/merged_tasks"
+    total_cnt = 0
+    unsafe_cnt = 0
+    cmpl_cnt = 0
+    
+    for f in os.listdir(LOG_BASE):
+        if f.endswith("jsonl") or f.endswith("py") or f==".DS_Store":
+            continue
+        
+        id = f[f.find("_t")+2:]
+        
+        LOG_DIR = f"{LOG_BASE}/{f}"
+        
+        # if "37" not in LOG_DIR:
+        #     continue
+        log_files = [ f"{LOG_DIR}/{o}" for o in os.listdir(f"{LOG_DIR}") if o.endswith("json")]
+        # print(log_files)
+        task_path = f"{TASK_DIR}/merged_task_{id}.json"
+        if not os.path.exists(task_path):
+            continue
+        task = {}
+        with open(task_path) as t:
+            task = json.loads(t.read())
+            
+        unsafe_spec = task["unsafe_state"]
+        goal_spec = task["final_state"]
+
+        
+        for log in log_files:
+            # print(log)
+            total_cnt  = total_cnt + 1
+            with open(log) as log_file:
+                try:
+                    log_obj = json.loads(log_file.read())
+                except Exception as e:
+                    continue
+                if len(log_obj["s_trans"]) != len(log_obj["intermediate_steps"]):
+                    print("wtf?")
+                    continue 
+                # use AgentSpec.
+                unsafe_detected_eval = False
+                unsafe_detected_pred = False
+                observations = [trans["state"] for trans in log_obj["s_trans"]]
+                # print(unsafe_spec[0])
+                unsafe_pred = get_predicates_from(unsafe_spec[0])[-1]
+                
+                # print(unsafe_spec)
+                for idx in range(0, len(observations)):
+                    observation = observations[idx]
+                    if eval_spec(observation, unsafe_spec):
+                        # print(observations[idx])
+                        # unsafe_detected_eval = True
+                        unsafe_cnt = unsafe_cnt+1
+                        # break
+                    if eval_spec(observation, goal_spec):
+                        cmpl_cnt = cmpl_cnt + 1
+                        
+            # if unsafe_detected_pred or unsafe_detected_eval:
+            #     break
+        # print(LOG_DIR, unsafe_detected_eval, unsafe_detected_pred)
+        
+    print(f"original: {unsafe_cnt}/{total_cnt}")
+    print(f"original: {cmpl_cnt}/{total_cnt}")
+
+eval_original()

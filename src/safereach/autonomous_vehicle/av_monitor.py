@@ -43,19 +43,7 @@ unsafe_predicates = {
 
 #interp: propositions in the form of {(lhs, op, rhs): bool_val ...}
 # it returns the value of the predicate.
-def truth_table(interp, pred):
-    if type(pred)==AtomicPredicate:
-        pred_name = convert_to_bool_var(pred.lhs, pred.op, pred.rhs)
-        pred_value = interp[pred_name]
-        return pred_value
-    elif type(pred) == BinaryPredicate:
-        if pred.op == "and":
-            return truth_table(interp, pred.lhs) and truth_table(interp, pred.rhs) 
-        else:
-            return truth_table(interp, pred.lhs) or truth_table(interp, pred.rhs) 
-    else:
-        raise Exception("Unsupported type")
-    
+
 def monitor_automata(alpha, beta, armed, t, viol, K):
     if not viol and alpha:
         t = K
@@ -69,13 +57,6 @@ def monitor_automata(alpha, beta, armed, t, viol, K):
         viol = True
     return armed, t, viol
     
-# this returns the states that satisfy the pred
-def filter(state_interp, pred):
-    states = []
-    for s in state_interp:
-        if truth_table(state_interp[s], pred):
-            states.append(s)
-    return states
 
 for scenario in os.listdir(LOG_BASE):
     LOGDIR = f"{LOG_BASE}{scenario}/"
@@ -109,6 +90,7 @@ for scenario in os.listdir(LOG_BASE):
                 continue
             if not log.endswith("_c.json"):
                 continue 
+            
             
             traj = []
             with open(f"{LOGDIR}{log}") as f:

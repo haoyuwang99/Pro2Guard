@@ -22,6 +22,7 @@ def build_model(logs: List[List[Any]], abs:Abstraction, alpha=1.0):
         state_tran = []
         for obs in log: 
             state = abs.encode(obs) 
+            print(state)
             state_tran.append(state)
             state_space.add(state) 
         state_transitions.append(state_tran)
@@ -29,7 +30,7 @@ def build_model(logs: List[List[Any]], abs:Abstraction, alpha=1.0):
     K = len(state_space) # extrace
     
     state_idx = abs.get_state_idx(state_space)
-    state_interpret = abs.get_state_interpretation(state_space)
+    state_interpret = abs.get_state_interpretation(state_space) 
     # Initialize count matrix
     transition_counts = np.zeros((K, K), dtype=int)
     for state_tran in state_transitions:
@@ -83,7 +84,7 @@ def build_model(logs: List[List[Any]], abs:Abstraction, alpha=1.0):
         "transition_probs": transition_probs
     }
   
-def store_model(model, dir, abstraction) :
+def store_model(model, dir, abstraction):
     if not os.path.exists(dir):
         os.mkdir(dir)
     with open(dir + "model.json","w") as f:

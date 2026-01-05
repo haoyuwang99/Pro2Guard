@@ -58,7 +58,7 @@ class EmbodiedAbstraction(Abstraction):
             obs["parentReceptacles"] = [pr[:pr.find("|")] for pr in obs["parentReceptacles"] ]\
                 if type(obs["parentReceptacles"])==list else obs["parentReceptacles"] 
         bitstr = ""
-        # print(observations)
+        # print(observations[0])
         for pred in self.predicates:
             # assume all predicates are quantified.
             # print(type(pred))
@@ -73,34 +73,37 @@ class EmbodiedAbstraction(Abstraction):
         if bitstr == FINISH:
             return FINISH
         # object_states = []
-        pairs = [
-            (pred.dict(), bit)   # or pred.model_dump() for Pydantic v2
+        # for i in range(len(bitstr)):
+        #     print( (True if bitstr[i]=='1' else False), self.predicates[i])
+        
+        pairs = {
+            str(pred): (True if bit=='1' else False) # or pred.model_dump() for Pydantic v2
             for pred, bit in zip(self.predicates, bitstr)
-        ]
+        }
         return pairs
-        # for (pred, bit) in zip(self.predicates, bitstr):
-        #     if bit == '1':
-        #         pred = pred.predicate
-        #         obj = construct_obj(pred)
-        #         object_states.append(obj)
-        #     else:
-        #         if pred.state_eval(object_states) == True:
-        #             raise Exception("This is not a ")
-        # return object_states
-   
+    
     # this should return a mask for the 
     # proposition maps from predicate to its bool value (i.e., 1)
-    def filter(self, propositions) -> Set[str]:
-        pred_idxes = {str(pred):i for i, pred in enumerate(self.predicate)}
-        masks = {}
+    def filter(self, propositions, state_bitstrs) -> Set[str]:
+
+        pred_idxes = {str(pred):i for i, pred in enumerate(self.predicates)}
+
+        true_pos = []
         for (predicate, b_value) in propositions:
             if not str(predicate) in pred_idxes:
+                print(predicate)
+                print([str(pred) for pred in pred_idxes])
                 raise Exception("Unknown predicate for the current abstraction")
             pred_i = pred_idxes[str(predicate)]
-            masks[pred_i] = '1' if b_value else '0'
+            if b_value :
+                true_pos.append(pred_i)
             
-        states = [bitstr for bitstr in itertools.product('01', repeat=len(self.predicates)) \
-            if all(bitstr[idx] == masks[idx] for idx in masks)]
+            
+        # states = [''.join(bitstr)  ]
+        # \
+            # if all(bitstr[pos] == 1 for pos in true_pos)]
+        
+        print(states)
         return set(states)
         
     def valid_trans(self, state1: str, state2: str) -> bool:

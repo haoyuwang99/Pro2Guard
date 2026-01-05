@@ -12,7 +12,7 @@ from .rule import *
 from .state import RuleState
 from .enforcement import *
 
-from safereach.runtime_monitor import runtime_monitor
+from safereach.runtime_monitor import state_runtime_monitor
 
 
 """Load controlled agent."""
@@ -102,7 +102,7 @@ class ControlledAgentExecutor(AgentExecutor) :
             threshold = self.extra_kwargs["threshold"]
             unsafe_state = str(task_obj["unsafe_state"])
             goal_state = str(task_obj["final_state"])
-            prob = runtime_monitor(current_state, dtmc_path, abs, unsafe_states, cache)
+            prob = state_runtime_monitor(current_state, dtmc_path, abs, unsafe_states, cache)
             print(prob)
             if prob>threshold:
                 values[1].observation["message"] = f"""There is a non-negligible probability that, from the current state, the unsafe state {unsafe_state} may eventually occur. You MUST NOT reach this unsafe state.
