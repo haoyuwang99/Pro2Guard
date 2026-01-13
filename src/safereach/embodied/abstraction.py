@@ -54,9 +54,9 @@ class EmbodiedAbstraction(Abstraction):
         if observations == FINISH:
             return FINISH
         
-        for obs in observations:
-            obs["parentReceptacles"] = [pr[:pr.find("|")] for pr in obs["parentReceptacles"] ]\
-                if type(obs["parentReceptacles"])==list else obs["parentReceptacles"] 
+        # for obs in observations:
+            # obs["parentReceptacles"] = [pr[:pr.find("|")] for pr in obs["parentReceptacles"] ]\
+            #     if type(obs["parentReceptacles"])==list else obs["parentReceptacles"] 
         bitstr = ""
         # print(observations[0])
         for pred in self.predicates:

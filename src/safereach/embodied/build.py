@@ -28,7 +28,7 @@ def embodied_build_model(dir, model_path, alpha=1.0):
             preds = get_predicates_from(spec)
             print(preds[-1])
             abs_predicates = abs_predicates + preds
-            # abs_predicates
+            
         # print(specs)
         # print(abs_predicates)
         
@@ -51,8 +51,6 @@ for dir in log_dirs :
     model = MODEL_DIR + "merged_" + dir + "/"
     dir = LOG_DIR + dir + "/"
     try: 
-        # if not "37" in dir:
-        #     continue
         print(dir)
         embodied_build_model(dir, model) 
         # break
@@ -60,4 +58,3 @@ for dir in log_dirs :
         if str(e).startswith("global"):
             raise e
         print(e)
-        # raise e

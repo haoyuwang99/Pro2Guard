@@ -16,6 +16,7 @@ import random
 from agentspec.rules.manual.pythonrepl import checks
 from low_level_controller import LowLevelPlanner
 
+
 # from agentspec.rule import Rule
 
 # llm = ChatDeepSeek(
@@ -28,9 +29,9 @@ from low_level_controller import LowLevelPlanner
 # )
 
 # exit(0)
-llm = ChatOpenAI(model = "gpt-4.1",
-                 api_key="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",
-                 temperature=0)
+
+# llm = ChatOpenAI(model = "gpt-4.1",
+#                  temperature=1)
  
 # import time
 # t = time.time()
@@ -77,12 +78,13 @@ def run_agent(scene, inst, **kwargs):
         llm,
         agent="zero-shot-react-description",
         rules = [], 
-        abs=kwargs["abs"],
-        dtmc_path=kwargs["dtmc_path"],
-        unsafe_states=kwargs["unsafe_states"],
-        cache=kwargs["cache"],
-        task_obj = kwargs["task_obj"],
-        threshold = kwargs["threshold"])
+        # abs=kwargs["abs"],
+        # dtmc_path=kwargs["dtmc_path"],
+        # unsafe_states=kwargs["unsafe_states"],
+        # cache=kwargs["cache"],
+        # task_obj = kwargs["task_obj"],
+        # threshold = kwargs["threshold"]
+        )
 
     objs = set()
     for obj in env.last_event.metadata['objects']:
@@ -229,59 +231,59 @@ def load_abstraction(abstraction_desc_path):
         obj = json.loads(f.read())
         return EmbodiedAbstraction(obj["objectTypes"], obj["keys"], obj["parentReceptacles"])
 
-MODEL_BASE = "safereach/embodied/dtmcs"
-for task in os.listdir(TASK_DIR):
-    if not task.startswith("merged"):
-        continue
+# MODEL_BASE = "safereach/embodied/dtmcs"
+# for task in os.listdir(TASK_DIR):
+#     if not task.startswith("merged"):
+#         continue
     
-    i = int(task[task.find("task_")+5:-5])
-    MODEL_DIR = f"{MODEL_BASE}/merged_log_raw_t{i}"
+#     i = int(task[task.find("task_")+5:-5])
+#     MODEL_DIR = f"{MODEL_BASE}/merged_log_raw_t{i}"
 
-    if not os.path.exists(MODEL_DIR):
-        continue
-    abs_path = f"{MODEL_DIR}/abstraction.json"
-    model_path = f"{MODEL_DIR}/dtmc.prism"
+#     if not os.path.exists(MODEL_DIR):
+#         continue
+#     abs_path = f"{MODEL_DIR}/abstraction.json"
+#     model_path = f"{MODEL_DIR}/dtmc.prism"
     
-    print(i)
-    print(task)
+#     print(i)
+#     print(task)
     
-    with open(f"{TASK_DIR}{task}") as f:
+#     with open(f"{TASK_DIR}{task}") as f:
 
-        if os.path.exists(f"safereach/embodied/merged_test_010_reflect/log_raw_t{i}.jsonl"):
-            continue 
+#         if os.path.exists(f"safereach/embodied/merged_test_010_reflect/log_raw_t{i}.jsonl"):
+#             continue 
         
-        obj = json.loads(f.read()) 
-        abs =  load_abstraction(abs_path)
-        unsafe_spec = obj["unsafe_state"]
-        unsafe_states = abs.filter(unsafe_spec)
-        unsafe_states = [abs.get_state_idx()[state] for state in list(unsafe_states)]
-        cache = {} 
+#         obj = json.loads(f.read()) 
+#         abs =  load_abstraction(abs_path)
+#         unsafe_spec = obj["unsafe_state"]
+#         unsafe_states = abs.filter(unsafe_spec)
+#         unsafe_states = [abs.get_state_idx()[state] for state in list(unsafe_states)]
+#         cache = {} 
   
-        for j in range(0, 5):
-            if i ==66 and j < 4:
-                continue
-            try:
-                t = time.time()
-                res = run_agent(obj["scene_name"], 
-                                obj["merged_inst"],
-                                dtmc_path = model_path,
-                                abs = abs,
-                                unsafe_states = unsafe_states,
-                                task_obj = obj,
-                                cache = cache,
-                                threshold = 0.1) 
-                t = time.time() - t
-                times = times + 1
-                total = total + t
-                with open(f"safereach/embodied/merged_test_010_reflect/log_raw_t{i}.jsonl", 'a') as f:
-                    f.write(json.dumps(res))
-                    f.write("\n")   
-                # break
-            except Exception as e: 
-                # raise e               
-                print("!!!")
-                print(e)
-                continue
+#         for j in range(0, 5):
+#             if i ==66 and j < 4:
+#                 continue
+#             try:
+#                 t = time.time()
+#                 res = run_agent(obj["scene_name"], 
+#                                 obj["merged_inst"],
+#                                 dtmc_path = model_path,
+#                                 abs = abs,
+#                                 unsafe_states = unsafe_states,
+#                                 task_obj = obj,
+#                                 cache = cache,
+#                                 threshold = 0.1) 
+#                 t = time.time() - t
+#                 times = times + 1
+#                 total = total + t
+#                 with open(f"safereach/embodied/merged_test_010_reflect/log_raw_t{i}.jsonl", 'a') as f:
+#                     f.write(json.dumps(res))
+#                     f.write("\n")   
+#                 # break
+#             except Exception as e: 
+#                 # raise e               
+#                 print("!!!")
+#                 print(e)
+#                 continue
         
 
 # print(total/times)

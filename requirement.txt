@@ -10,3 +10,4 @@ shapely
 rtamt
 z3-solver
 stormpy
+deepdiff

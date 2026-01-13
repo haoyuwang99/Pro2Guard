@@ -15,8 +15,7 @@ def get_predicates_from(spec):
             if len(spec[PR])==1:
                 preds.append(AtomicPredicate(lhs=PR, op="in", rhs=spec[PR][0]))
         else:
-            # print(key)
-            preds.append(AtomicPredicate(lhs=key, op="==", rhs=True))
+            preds.append(AtomicPredicate(lhs=key, op="==", rhs=spec[key]))
     conjunction_pred = None
     for pred in preds:
         res.append(QuantifiedPredicate(quantifier="exist", predicate = pred))

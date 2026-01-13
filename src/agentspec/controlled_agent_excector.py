@@ -94,19 +94,20 @@ class ControlledAgentExecutor(AgentExecutor) :
             # values[1] is the result from tool invocation
             print(self.extra_kwargs.keys())
             # check the observation
-            dtmc_path = self.extra_kwargs["dtmc_path"]
-            abs = self.extra_kwargs["abs"]
-            unsafe_states = self.extra_kwargs["unsafe_states"]
-            cache = self.extra_kwargs["cache"]
-            task_obj = self.extra_kwargs["task_obj"]
-            threshold = self.extra_kwargs["threshold"]
-            unsafe_state = str(task_obj["unsafe_state"])
-            goal_state = str(task_obj["final_state"])
-            prob = state_runtime_monitor(current_state, dtmc_path, abs, unsafe_states, cache)
-            print(prob)
-            if prob>threshold:
-                values[1].observation["message"] = f"""There is a non-negligible probability that, from the current state, the unsafe state {unsafe_state} may eventually occur. You MUST NOT reach this unsafe state.
-Carefully plan your actions to avoid reaching this unsafe state."""
+            if "abs" in self.extra_kwargs: 
+                dtmc_path = self.extra_kwargs["dtmc_path"]
+                abs = self.extra_kwargs["abs"]
+                unsafe_states = self.extra_kwargs["unsafe_states"]
+                cache = self.extra_kwargs["cache"]
+                task_obj = self.extra_kwargs["task_obj"]
+                threshold = self.extra_kwargs["threshold"]
+                unsafe_state = str(task_obj["unsafe_state"])
+                goal_state = str(task_obj["final_state"])
+                prob = state_runtime_monitor(current_state, dtmc_path, abs, unsafe_states, cache)
+                print(prob)
+                if prob>threshold:
+                    values[1].observation["message"] = f"""There is a non-negligible probability that, from the current state, the unsafe state {unsafe_state} may eventually occur. You MUST NOT reach this unsafe state.
+    Carefully plan your actions to avoid reaching this unsafe state."""
             
             return [
                 (a.action, a.observation) for a in values if isinstance(a, AgentStep)
